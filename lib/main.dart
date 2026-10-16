@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
+import 'package:n_calendar/services/today_service.dart';
 import 'package:n_calendar/theme/n_calendar_theme.dart';
 import 'package:n_calendar/widgets/calendar_grid.dart';
+import 'package:n_calendar/widgets/date_converter.dart';
 
 void main() {
   runApp(const NCalendarApp());
@@ -33,6 +35,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedYear = 2083;
   int _selectedMonth = 1; // Baisakh
+  int _tabIndex = 0; // 0 = Calendar, 1 = Converter
+  bool _openedOnToday = false; // jump to today on the first load only
   bool _loading = true;
   List<BsMonth> _months = [];
 
@@ -48,6 +52,22 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _months = BsDataService.instance.months;
       _loading = false;
+    });
+    // Open on today's BS month on the first load; a later refresh must
+    // not re-jump away from whatever the user has selected.
+    if (!_openedOnToday) {
+      _openedOnToday = true;
+      _goToToday(selectTab: false);
+    }
+  }
+
+  void _goToToday({bool selectTab = true}) {
+    final today = TodayService.instance.today();
+    if (today == null) return;
+    setState(() {
+      _selectedYear = today.bsYear;
+      _selectedMonth = today.bsMonth;
+      if (selectTab) _tabIndex = 0;
     });
   }
 
@@ -86,10 +106,19 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final padding = NCalendarTheme.responsivePadding(context);
+    final today = TodayService.instance.today();
     return Scaffold(
       appBar: AppBar(
         title: const Text('nCalendar'),
         actions: [
+          if (today != null)
+            TextButton.icon(
+              onPressed: _goToToday,
+              icon: const Icon(Icons.today, size: 18),
+              label: Text(
+                '${BsMonth.monthName(today.bsMonth)} ${today.bsDay}, ${today.bsYear}',
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _init,
@@ -99,95 +128,128 @@ class _HomePageState extends State<HomePage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : IndexedStack(
+              index: _tabIndex,
               children: [
-                // Month/year selector
-                Container(
-                  padding: EdgeInsets.all(padding),
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 10,
-                    alignment: WrapAlignment.start,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      const Text(
-                        'Bikram Sambat',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                Column(
+                  children: [
+                    // Month/year selector
+                    Container(
+                      padding: EdgeInsets.all(padding),
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.start,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Text(
+                            'Bikram Sambat',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(width: 8),
+                          // Previous year
+                          FilledButton.tonal(
+                            onPressed: _selectedYear > _minYear
+                                ? _previousYear
+                                : null,
+                            child: const Text('◀ Year'),
+                          ),
+                          // Year dropdown — full data range
+                          SizedBox(
+                            width: 110,
+                            child: DropdownButton<int>(
+                              value: _selectedYear,
+                              items: List.generate(
+                                _maxYear - _minYear + 1,
+                                (i) => _minYear + i,
+                              )
+                                  .map((y) => DropdownMenuItem(
+                                        value: y,
+                                        child: Text('$y'),
+                                      ))
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _selectedYear = v!),
+                            ),
+                          ),
+                          // Next year
+                          FilledButton.tonal(
+                            onPressed: _selectedYear < _maxYear
+                                ? _nextYear
+                                : null,
+                            child: const Text('Year ▶'),
+                          ),
+                          const SizedBox(width: 16),
+                          // Month dropdown
+                          SizedBox(
+                            width: 170,
+                            child: DropdownButton<int>(
+                              value: _selectedMonth,
+                              items: List.generate(12, (i) => i + 1)
+                                  .map((m) => DropdownMenuItem(
+                                        value: m,
+                                        child: Text(BsMonth.monthName(m)),
+                                      ))
+                                  .toList(),
+                              onChanged: (v) =>
+                                  setState(() => _selectedMonth = v!),
+                            ),
+                          ),
+                          if (_currentMonth != null)
+                            Text(
+                              'AD ${_currentMonth!.adStart} → ${_currentMonth!.adEnd}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w500),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      // Previous year
-                      FilledButton.tonal(
-                        onPressed: _selectedYear > _minYear ? _previousYear : null,
-                        child: const Text('◀ Year'),
+                    ),
+                    const Divider(height: 1),
+                    // Calendar grid (renders its own legend internally)
+                    Expanded(
+                      child: CalendarGrid(
+                        bsYear: _selectedYear,
+                        bsMonth: _selectedMonth,
                       ),
-                      // Year dropdown — full data range
-                      SizedBox(
-                        width: 110,
-                        child: DropdownButton<int>(
-                          value: _selectedYear,
-                          items: List.generate(
-                            _maxYear - _minYear + 1,
-                            (i) => _minYear + i,
-                          )
-                              .map((y) => DropdownMenuItem(
-                                    value: y,
-                                    child: Text('$y'),
-                                  ))
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedYear = v!),
-                        ),
-                      ),
-                      // Next year
-                      FilledButton.tonal(
-                        onPressed: _selectedYear < _maxYear ? _nextYear : null,
-                        child: const Text('Year ▶'),
-                      ),
-                      const SizedBox(width: 16),
-                      // Month dropdown
-                      SizedBox(
-                        width: 170,
-                        child: DropdownButton<int>(
-                          value: _selectedMonth,
-                          items: List.generate(12, (i) => i + 1)
-                              .map((m) => DropdownMenuItem(
-                                    value: m,
-                                    child: Text(BsMonth.monthName(m)),
-                                  ))
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedMonth = v!),
-                        ),
-                      ),
-                      if (_currentMonth != null)
-                        Text(
-                          'AD ${_currentMonth!.adStart} → ${_currentMonth!.adEnd}',
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const Divider(height: 1),
-                // Calendar grid (renders its own legend internally)
-                Expanded(
-                  child: CalendarGrid(
-                    bsYear: _selectedYear,
-                    bsMonth: _selectedMonth,
-                  ),
-                ),
+                const DateConverter(),
               ],
             ),
       bottomNavigationBar: _currentMonth != null
-          ? Container(
-              padding: EdgeInsets.all(padding * 0.75),
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              child: Text(
-                'Source: nCalander Commons Layer 1 · NPT (UTC+05:45) · '
-                '${_currentMonth!.daysInMonth} days · evidence: ${_currentMonth!.evidence}',
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                NavigationBar(
+                  selectedIndex: _tabIndex,
+                  onDestinationSelected: (index) =>
+                      setState(() => _tabIndex = index),
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.calendar_month),
+                      label: 'Calendar',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.swap_horiz),
+                      label: 'Converter',
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: EdgeInsets.all(padding * 0.75),
+                  color:
+                      Theme.of(context).colorScheme.surfaceContainerHighest,
+                  child: Text(
+                    'Source: nCalander Commons Layer 1 · NPT (UTC+05:45) · '
+                    '${_currentMonth!.daysInMonth} days · evidence: ${_currentMonth!.evidence}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             )
           : null,
     );
