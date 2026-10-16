@@ -345,80 +345,84 @@ class _CalendarGridState extends State<CalendarGrid> {
           vertical: 6 * textScale,
           horizontal: 3 * textScale,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (day == null) ...[
-              SizedBox(height: 4 * textScale),
-            ] else ...[
-              Text(
-                '${day.bsDay}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: hasFestival
-                          ? scheme.onPrimaryContainer
-                          : null,
-                      fontSize: 14 * textScale,
-                    ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: 1 * textScale),
-              Text(
-                day.weekdayNepali.isNotEmpty
-                    ? '${day.weekdayNepali} (${day.weekday})'
-                    : day.weekday,
-                style: Theme.of(context).textTheme.labelSmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: 1 * textScale),
-              Text(
-                day.adDate,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 11 * textScale,
-                    ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (day.tithi.isNotEmpty)
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topLeft,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (day == null) ...[
+                SizedBox(height: 4 * textScale),
+              ] else ...[
                 Text(
-                  day.tithi,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 10 * textScale,
+                  '${day.bsDay}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: hasFestival
+                            ? scheme.onPrimaryContainer
+                            : null,
+                        fontSize: 14 * textScale,
                       ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-              if (hasFestival) ...[
-                SizedBox(height: 3 * textScale),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 5 * textScale,
-                    vertical: 1 * textScale,
-                  ),
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    day.festival!,
+                SizedBox(height: 1 * textScale),
+                Text(
+                  day.weekdayNepali.isNotEmpty
+                      ? '${day.weekdayNepali} (${day.weekday})'
+                      : day.weekday,
+                  style: Theme.of(context).textTheme.labelSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 1 * textScale),
+                Text(
+                  day.adDate,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11 * textScale,
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (day.tithi.isNotEmpty)
+                  Text(
+                    day.tithi,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
                           fontSize: 10 * textScale,
                         ),
-                    overflow: TextOverflow.ellipsis,
                     maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                if (hasFestival) ...[
+                  SizedBox(height: 3 * textScale),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 5 * textScale,
+                      vertical: 1 * textScale,
+                    ),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      day.festival!,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: scheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 10 * textScale,
+                          ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
               ],
             ],
-          ],
+          ),
         ),
       ),
     );
