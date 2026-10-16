@@ -12,8 +12,11 @@ import 'package:n_calendar/theme/n_calendar_theme.dart';
 /// festival. Built to consume the nCalander evidence-tagged data commons.
 ///
 /// Responsive behavior (via [LayoutBuilder] + [NCalendarTheme]):
-/// - xs/sm (< 900px): single month (the selected one), vertical stack
-/// - md/lg (>= 900px): 2–3 months side-by-side, or full year view (3×4 months)
+/// - xs (< 480px): single month, large touch targets
+/// - sm (480–768px): single column, 1–2 months
+/// - md (768–1024px): 2–3 months side-by-side
+/// - lg (1024–1400px): 3–4 months side-by-side
+/// - xl (> 1400px): 4–6 months side-by-side, full year view
 class CalendarGrid extends StatefulWidget {
   final int bsYear;
   final int bsMonth; // 1 = Baisakh ... 12 = Chaitra — the user-selected month
@@ -80,6 +83,7 @@ class _CalendarGridState extends State<CalendarGrid> {
     final startIndex = _weekdayIndex(firstDay.adDate); // 0=Sun
 
     final todayAdDate = TodayService.instance.todayAdDate;
+    final textScale = NCalendarTheme.responsiveTextScale(context);
     final cells = <Widget>[];
     for (var i = 0; i < startIndex; i++) {
       cells.add(_dayCell(null, i, cellWidth, cellHeight));
@@ -101,9 +105,10 @@ class _CalendarGridState extends State<CalendarGrid> {
     }
 
     final scheme = Theme.of(context).colorScheme;
+    final pad = textScale.clamp(0.8, 1.3) * 8.0;
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: EdgeInsets.all(pad),
       decoration: BoxDecoration(
         color: isSelected
             ? scheme.primaryContainer.withValues(alpha: 0.15)
@@ -132,7 +137,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                           ),
                     ),
                     if (isSelected)
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2 * textScale),
                     if (isSelected)
                       Text(
                         'SELECTED',
@@ -142,39 +147,42 @@ class _CalendarGridState extends State<CalendarGrid> {
                             ?.copyWith(
                           color: scheme.primary,
                           fontWeight: FontWeight.w600,
-                          fontSize: 10,
+                          fontSize: 10 * textScale,
                         ),
                       ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4 * textScale),
                     Text(
                       'AD ${month.adStart} → ${month.adEnd}',
                       style: Theme.of(context).textTheme.bodyMedium
                           ?.copyWith(
                         color: scheme.onSurfaceVariant,
+                        fontSize: 14 * textScale,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2 * textScale),
                     Text(
                       '${month.daysInMonth} days · NPT (UTC+05:45) · ${month.evidence}',
                       style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(
                         color: scheme.onSurfaceVariant,
-                        fontSize: 11,
+                        fontSize: 11 * textScale,
                       ),
                     ),
                   ],
                 ),
               ),
               if (isSelected)
-                Icon(Icons.check_circle, color: scheme.primary, size: 20),
+                Icon(Icons.check_circle,
+                    color: scheme.primary,
+                    size: 20 * textScale),
             ],
           ),
           if (!compact) ...[
-            const SizedBox(height: 12),
+            SizedBox(height: 12 * textScale),
 
             // Weekday headers
             SizedBox(
-              height: 34,
+              height: 34 * textScale,
               child: Row(
                 children: [
                   for (final wd in _weekdayLabels)
@@ -188,7 +196,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                               ?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: scheme.onSurfaceVariant,
-                            fontSize: 12,
+                            fontSize: 12 * textScale,
                           ),
                         ),
                       ),
@@ -222,6 +230,7 @@ class _CalendarGridState extends State<CalendarGrid> {
     final startIndex = _weekdayIndex(firstDay.adDate); // 0=Sun
 
     final todayAdDate = TodayService.instance.todayAdDate;
+    final textScale = NCalendarTheme.responsiveTextScale(context);
     final cells = <Widget>[];
     for (var i = 0; i < startIndex; i++) {
       cells.add(SizedBox.square(dimension: cellSize));
@@ -241,7 +250,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                 ? NCalendarTheme.growthGreen.withValues(alpha: 0.4)
                 : hasFestival
                     ? scheme.primaryContainer.withValues(alpha: 0.12)
-                : null,
+                    : null,
             borderRadius: BorderRadius.circular(6),
             border: isToday
                 ? Border.all(color: NCalendarTheme.growthGreen, width: 1.5)
@@ -252,6 +261,7 @@ class _CalendarGridState extends State<CalendarGrid> {
               '${day.bsDay}',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
+                    fontSize: 11 * textScale,
                     color: isToday
                         ? NCalendarTheme.growthGreen
                         : hasFestival
@@ -276,18 +286,19 @@ class _CalendarGridState extends State<CalendarGrid> {
           month.bsMonthName,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
+                fontSize: 12 * textScale,
                 color: Theme.of(context).colorScheme.primary,
               ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6 * textScale),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
             childAspectRatio: 1.0,
-            mainAxisSpacing: 2,
-            crossAxisSpacing: 2,
+            mainAxisSpacing: 2 * textScale,
+            crossAxisSpacing: 2 * textScale,
           ),
           itemCount: cells.length,
           itemBuilder: (_, i) => cells[i],
@@ -310,6 +321,7 @@ class _CalendarGridState extends State<CalendarGrid> {
     final isWeekend = weekdayIndex == 0 || weekdayIndex == 6;
     final hasFestival = day?.festival != null && day!.festival!.isNotEmpty;
     final scheme = Theme.of(context).colorScheme;
+    final textScale = NCalendarTheme.responsiveTextScale(context);
     final isSelectedToday = isToday && day?.adDate == _todayDay?.adDate;
 
     return Container(
@@ -329,13 +341,16 @@ class _CalendarGridState extends State<CalendarGrid> {
                 : null,
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
+        padding: EdgeInsets.symmetric(
+          vertical: 6 * textScale,
+          horizontal: 3 * textScale,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (day == null) ...[
-              const SizedBox(height: 4),
+              SizedBox(height: 4 * textScale),
             ] else ...[
               Text(
                 '${day.bsDay}',
@@ -344,11 +359,12 @@ class _CalendarGridState extends State<CalendarGrid> {
                       color: hasFestival
                           ? scheme.onPrimaryContainer
                           : null,
+                      fontSize: 14 * textScale,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 1),
+              SizedBox(height: 1 * textScale),
               Text(
                 day.weekdayNepali.isNotEmpty
                     ? '${day.weekdayNepali} (${day.weekday})'
@@ -357,12 +373,12 @@ class _CalendarGridState extends State<CalendarGrid> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 1),
+              SizedBox(height: 1 * textScale),
               Text(
                 day.adDate,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
-                      fontSize: 11,
+                      fontSize: 11 * textScale,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -373,16 +389,17 @@ class _CalendarGridState extends State<CalendarGrid> {
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: scheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
-                        fontSize: 10,
+                        fontSize: 10 * textScale,
                       ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               if (hasFestival) ...[
-                const SizedBox(height: 3),
+                SizedBox(height: 3 * textScale),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5, vertical: 1,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 5 * textScale,
+                    vertical: 1 * textScale,
                   ),
                   decoration: BoxDecoration(
                     color: scheme.primaryContainer,
@@ -393,7 +410,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: scheme.onPrimaryContainer,
                           fontWeight: FontWeight.w600,
-                          fontSize: 10,
+                          fontSize: 10 * textScale,
                         ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -409,7 +426,7 @@ class _CalendarGridState extends State<CalendarGrid> {
 
   Widget _legendChip(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
@@ -419,8 +436,8 @@ class _CalendarGridState extends State<CalendarGrid> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 8,
-            height: 8,
+            width: NCalendarTheme.minTouchTarget * 0.18,
+            height: NCalendarTheme.minTouchTarget * 0.18,
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
@@ -471,18 +488,21 @@ class _CalendarGridState extends State<CalendarGrid> {
     final breakPoint = NCalendarTheme.breakpointOf(context);
     final isMobile = breakPoint == 'xs' || breakPoint == 'sm';
     final todayDay = _todayDay;
+    final padding = NCalendarTheme.responsivePadding(context);
+    final textScale = NCalendarTheme.responsiveTextScale(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         // Pre-compute layout values available in LayoutBuilder scope
-        final availableWidth = constraints.maxWidth - 40;
-        final cols = isMobile ? 1 : 3;
+        final availableWidth = constraints.maxWidth - padding * 2;
+        final cols = isMobile ? 1 : NCalendarTheme.monthCountForWidth(
+          constraints.maxWidth,
+        );
         final yearCellSize = (availableWidth / cols - 32) / 7;
-        const double cellHeight = 84.0;
-        final double gridPadding = 40.0;
+        final cellHeight = 84.0 * textScale.clamp(0.9, 1.2);
         final monthCount =
             NCalendarTheme.monthCountForWidth(constraints.maxWidth);
-        final monthViewWidth = constraints.maxWidth - gridPadding;
+        final monthViewWidth = constraints.maxWidth - padding * 2;
         final cellWidth = monthViewWidth / (monthCount * 7);
         final List<BsMonth> showMonths;
         if (isMobile) {
@@ -492,205 +512,220 @@ class _CalendarGridState extends State<CalendarGrid> {
         }
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(padding),
           child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header row: year + view toggle
-          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _yearView
-                          ? '${widget.bsYear} — Full Year'
-                          : '${_selectedMonth?.bsMonthName ?? ''} ${widget.bsYear}',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    if (!_yearView && _selectedMonth != null)
-                      Text(
-                        'AD ${_selectedMonth!.adStart} → ${_selectedMonth!.adEnd}',
-                        style: Theme.of(context).textTheme.bodyLarge
-                            ?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                      ),
-                    if (_yearView)
-                      Text(
-                        'AD ${_yearMonths.first.adStart} → ${_yearMonths.last.adEnd} · ${_yearMonths.length} months',
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              // Header row: year + view toggle
               Row(
-                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _yearView = false),
-                    icon: const Icon(Icons.calendar_month, size: 18),
-                    label: Text(
-                      'Month View',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _yearView
-                          ? null
-                          : Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _yearView = true),
-                    icon: const Icon(Icons.view_list, size: 18),
-                    label: Text(
-                      'Year View',
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _yearView
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Today banner (shown when today's month is displayed in month view)
-          if (!_yearView &&
-              todayDay != null &&
-              todayDay.bsYear == widget.bsYear &&
-              todayDay.bsMonth == widget.bsMonth)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 10,
-              ),
-              decoration: BoxDecoration(
-                color: NCalendarTheme.growthGreen.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: NCalendarTheme.growthGreen.withValues(alpha: 0.5),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.today,
-                    color: NCalendarTheme.growthGreen,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Today: ${todayDay.bsDay} ${BsMonth.monthName(todayDay.bsMonth)} ${todayDay.bsYear}',
-                          style: Theme.of(context).textTheme.bodyMedium
+                          _yearView
+                              ? '${widget.bsYear} — Full Year'
+                              : '${_selectedMonth?.bsMonthName ?? ''} ${widget.bsYear}',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium
                               ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: NCalendarTheme.growthGreen,
+                            fontSize: 22 * textScale,
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'AD ${todayDay.adDate} · ${todayDay.weekdayNepali}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                            color: NCalendarTheme.growthGreen,
-                            fontSize: 12,
+                        SizedBox(height: 4 * textScale),
+                        if (!_yearView && _selectedMonth != null)
+                          Text(
+                            'AD ${_selectedMonth!.adStart} → ${_selectedMonth!.adEnd}',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 16 * textScale,
+                            ),
                           ),
-                        ),
+                        if (_yearView)
+                          Text(
+                            'AD ${_yearMonths.first.adStart} → ${_yearMonths.last.adEnd} · ${_yearMonths.length} months',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 14 * textScale,
+                            ),
+                          ),
                       ],
                     ),
                   ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => setState(() => _yearView = false),
+                        icon: Icon(Icons.calendar_month, size: 18 * textScale),
+                        label: Text(
+                          'Month View',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _yearView
+                              ? null
+                              : Theme.of(context).colorScheme.primary,
+                          minimumSize: Size(
+                            NCalendarTheme.minTouchTarget * 0.7,
+                            NCalendarTheme.minTouchTarget,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 8 * textScale),
+                      OutlinedButton.icon(
+                        onPressed: () => setState(() => _yearView = true),
+                        icon: Icon(Icons.view_list, size: 18 * textScale),
+                        label: Text(
+                          'Year View',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: _yearView
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                          minimumSize: Size(
+                            NCalendarTheme.minTouchTarget * 0.7,
+                            NCalendarTheme.minTouchTarget,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ),
-          if (!_yearView &&
-              todayDay != null &&
-              todayDay.bsYear == widget.bsYear &&
-              todayDay.bsMonth == widget.bsMonth)
-            const SizedBox(height: 8),
+              SizedBox(height: 12 * textScale),
 
-          // Content: Year View or Month View
-          if (_yearView) ...[
-            // Full year view: 12 months in 3 columns × 4 rows
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: cols,
-                childAspectRatio: isMobile ? 1.6 : 1.15,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-              ),
-              itemCount: _yearMonths.length,
-              itemBuilder: (_, i) {
-                final month = _yearMonths[i];
-                return _miniMonth(month, yearCellSize);
-              },
-            ),
-          ] else ...[
-            // Month view: responsive 1/2/3 months side-by-side
-            Wrap(
-              spacing: 16,
-              runSpacing: 24,
-              children: showMonths.map((month) {
-                return SizedBox(
-                  width: monthViewWidth / monthCount - 16,
-                  child: _monthGrid(
-                    month,
-                    cellWidth,
-                    cellHeight,
-                    isSelected: month.bsMonth == widget.bsMonth,
+              // Today banner (shown when today's month is displayed in month view)
+              if (!_yearView &&
+                  todayDay != null &&
+                  todayDay.bsYear == widget.bsYear &&
+                  todayDay.bsMonth == widget.bsMonth)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16 * textScale,
+                    vertical: 10 * textScale,
                   ),
-                );
-              }).toList(),
-            ),
-          ],
+                  decoration: BoxDecoration(
+                    color: NCalendarTheme.growthGreen.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: NCalendarTheme.growthGreen.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.today,
+                        color: NCalendarTheme.growthGreen,
+                        size: 18 * textScale,
+                      ),
+                      SizedBox(width: 8 * textScale),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Today: ${todayDay.bsDay} ${BsMonth.monthName(todayDay.bsMonth)} ${todayDay.bsYear}',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: NCalendarTheme.growthGreen,
+                                fontSize: 14 * textScale,
+                              ),
+                            ),
+                            SizedBox(height: 2 * textScale),
+                            Text(
+                              'AD ${todayDay.adDate} · ${todayDay.weekdayNepali}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                color: NCalendarTheme.growthGreen,
+                                fontSize: 12 * textScale,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (!_yearView &&
+                  todayDay != null &&
+                  todayDay.bsYear == widget.bsYear &&
+                  todayDay.bsMonth == widget.bsMonth)
+              SizedBox(height: 8 * textScale),
 
-          const SizedBox(height: 32),
+              // Content: Year View or Month View
+              if (_yearView) ...[
+                // Full year view: 12 months in 3 columns × 4 rows
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    childAspectRatio: isMobile ? 1.6 : 1.15,
+                    mainAxisSpacing: 16 * textScale,
+                    crossAxisSpacing: 16 * textScale,
+                  ),
+                  itemCount: _yearMonths.length,
+                  itemBuilder: (_, i) {
+                    final month = _yearMonths[i];
+                    return _miniMonth(month, yearCellSize);
+                  },
+                ),
+              ] else ...[
+                // Month view: responsive 1/2/3 months side-by-side
+                Wrap(
+                  spacing: 16 * textScale,
+                  runSpacing: 24 * textScale,
+                  children: showMonths.map((month) {
+                    return SizedBox(
+                      width: monthViewWidth / monthCount - 16,
+                      child: _monthGrid(
+                        month,
+                        cellWidth,
+                        cellHeight,
+                        isSelected: month.bsMonth == widget.bsMonth,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
 
-          // Legend
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _legendChip('Today', NCalendarTheme.growthGreen),
-              _legendChip('Festival', NCalendarTheme.growthGreen),
-              _legendChip('Weekend', Colors.grey),
-              if (! _yearView)
-                _legendChip(
-                    'Selected month', NCalendarTheme.primaryNavy),
+              SizedBox(height: 32 * textScale),
+
+              // Legend
+              Wrap(
+                spacing: 12 * textScale,
+                runSpacing: 8 * textScale,
+                alignment: WrapAlignment.center,
+                children: [
+                  _legendChip('Today', NCalendarTheme.growthGreen),
+                  _legendChip('Festival', NCalendarTheme.growthGreen),
+                  _legendChip('Weekend', Colors.grey),
+                  if (! _yearView)
+                    _legendChip(
+                        'Selected month', NCalendarTheme.primaryNavy),
+                ],
+              ),
+
+              SizedBox(height: 24 * textScale),
             ],
           ),
-
-          const SizedBox(height: 24),
-        ],
-      ),
+        );
+      },
     );
-  },  // Close LayoutBuilder.builder
-);  // Close LayoutBuilder
-}  // Close build method
+  }  // Close build method
 }  // Close class

@@ -61,8 +61,31 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  int get _minYear {
+    if (_months.isEmpty) return 1975;
+    return _months.map((m) => m.bsYear).reduce((a, b) => a < b ? a : b);
+  }
+
+  int get _maxYear {
+    if (_months.isEmpty) return 2083;
+    return _months.map((m) => m.bsYear).reduce((a, b) => a > b ? a : b);
+  }
+
+  void _previousYear() {
+    if (_selectedYear > _minYear) {
+      setState(() => _selectedYear--);
+    }
+  }
+
+  void _nextYear() {
+    if (_selectedYear < _maxYear) {
+      setState(() => _selectedYear++);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final padding = NCalendarTheme.responsivePadding(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('nCalendar'),
@@ -80,7 +103,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 // Month/year selector
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(padding),
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   child: Wrap(
                     spacing: 12,
@@ -93,11 +116,20 @@ class _HomePageState extends State<HomePage> {
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(width: 8),
+                      // Previous year
+                      FilledButton.tonal(
+                        onPressed: _selectedYear > _minYear ? _previousYear : null,
+                        child: const Text('◀ Year'),
+                      ),
+                      // Year dropdown — full data range
                       SizedBox(
-                        width: 100,
+                        width: 110,
                         child: DropdownButton<int>(
                           value: _selectedYear,
-                          items: List.generate(10, (i) => 2075 + i)
+                          items: List.generate(
+                            _maxYear - _minYear + 1,
+                            (i) => _minYear + i,
+                          )
                               .map((y) => DropdownMenuItem(
                                     value: y,
                                     child: Text('$y'),
@@ -107,7 +139,13 @@ class _HomePageState extends State<HomePage> {
                               setState(() => _selectedYear = v!),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      // Next year
+                      FilledButton.tonal(
+                        onPressed: _selectedYear < _maxYear ? _nextYear : null,
+                        child: const Text('Year ▶'),
+                      ),
+                      const SizedBox(width: 16),
+                      // Month dropdown
                       SizedBox(
                         width: 170,
                         child: DropdownButton<int>(
@@ -142,7 +180,7 @@ class _HomePageState extends State<HomePage> {
             ),
       bottomNavigationBar: _currentMonth != null
           ? Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(padding * 0.75),
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Text(
                 'Source: nCalander Commons Layer 1 · NPT (UTC+05:45) · '
@@ -154,5 +192,4 @@ class _HomePageState extends State<HomePage> {
           : null,
     );
   }
-
 }

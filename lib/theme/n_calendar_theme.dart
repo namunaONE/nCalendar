@@ -21,12 +21,25 @@ class NCalendarTheme {
   // Responsive breakpoints (CSS px)
   // -------------------------------------------------------------------------
 
-  static const double breakpointXs = 600;
-  static const double breakpointSm = 900;
-  static const double breakpointMd = 1200;
+  /// Extra small — phones portrait (< 480px): single column, large touch targets.
+  static const double breakpointXs = 480;
+
+  /// Small — phones landscape / small tablets (480–768px): single column.
+  static const double breakpointSm = 768;
+
+  /// Medium — tablets (768–1024px): 2 months side-by-side.
+  static const double breakpointMd = 1024;
+
+  /// Large — laptops / small desktops (1024–1400px): 3–4 months side-by-side.
+  static const double breakpointLg = 1400;
+
+  /// Extra large — wide desktops (> 1400px): 4–6 months side-by-side.
+  static const double breakpointXl = 1400;
 
   /// How many month grids to show side-by-side given available width.
   static int monthCountForWidth(double width) {
+    if (width >= breakpointXl) return 6;
+    if (width >= breakpointLg) return 4;
     if (width >= breakpointMd) return 3;
     if (width >= breakpointSm) return 2;
     return 1;
@@ -34,10 +47,32 @@ class NCalendarTheme {
 
   /// Human-readable breakpoint label.
   static String breakpointLabel(double width) {
-    if (width >= breakpointMd) return 'lg';
-    if (width >= breakpointSm) return 'md';
-    if (width >= breakpointXs) return 'sm';
+    if (width >= breakpointXl) return 'xl';
+    if (width >= breakpointLg) return 'lg';
+    if (width >= breakpointMd) return 'md';
+    if (width >= breakpointSm) return 'sm';
     return 'xs';
+  }
+
+  /// Minimum touch target size (44px recommended for web accessibility).
+  static const double minTouchTarget = 44.0;
+
+  /// Responsive padding based on screen width.
+  static double responsivePadding(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= breakpointLg) return 32.0;
+    if (width >= breakpointMd) return 24.0;
+    if (width >= breakpointSm) return 20.0;
+    return 16.0;
+  }
+
+  /// Responsive font scale factor.
+  static double responsiveTextScale(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= breakpointLg) return 1.15;
+    if (width >= breakpointMd) return 1.1;
+    if (width >= breakpointSm) return 1.05;
+    return 1.0;
   }
 
   // -------------------------------------------------------------------------
