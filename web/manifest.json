@@ -1,11 +1,11 @@
 {
-    "name": "n_calendar",
-    "short_name": "n_calendar",
+    "name": "nCalendar — Bikram Sambat Calendar",
+    "short_name": "nCalendar",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#002C6D",
+    "theme_color": "#002C6D",
+    "description": "Open, evidence-tagged Nepali (Bikram Sambat) calendar data commons rendered on GitHub Pages.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

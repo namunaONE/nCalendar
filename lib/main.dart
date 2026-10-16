@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
+import 'package:n_calendar/theme/n_calendar_theme.dart';
 import 'package:n_calendar/widgets/calendar_grid.dart';
 
 void main() {
@@ -14,24 +15,8 @@ class NCalendarApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'nCalendar',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF002C6D), // brand navy seed
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF002C6D),
-          brightness: Brightness.dark,
-        ),
-      ),
+      theme: NCalendarTheme.light(),
+      darkTheme: NCalendarTheme.dark(),
       themeMode: ThemeMode.system,
       home: const HomePage(),
     );
@@ -153,6 +138,19 @@ class _HomePageState extends State<HomePage> {
                     bsMonth: _selectedMonth,
                   ),
                 ),
+                const SizedBox(height: 32),
+                // Legend
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _legendChip('Today', NCalendarTheme.growthGreen),
+                    _legendChip('Festival', NCalendarTheme.growthGreen),
+                    _legendChip('Weekend', Colors.grey),
+                  ],
+                ),
+                const SizedBox(height: 16),
               ],
             ),
       bottomNavigationBar: _currentMonth != null
@@ -167,6 +165,35 @@ class _HomePageState extends State<HomePage> {
               ),
             )
           : null,
+    );
+  }
+
+  Widget _legendChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
     );
   }
 }
