@@ -44,6 +44,16 @@ class _CalendarGridState extends State<CalendarGrid> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(CalendarGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Year switches must reload the month set; month switches are pure
+    // build-time (the grid already holds all 12 months of the year).
+    if (oldWidget.bsYear != widget.bsYear) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     try {

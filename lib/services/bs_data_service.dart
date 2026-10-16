@@ -43,6 +43,24 @@ class BsDataService {
     return null;
   }
 
+  /// Look up the BS day for an ISO AD date (`yyyy-mm-dd`).
+  ///
+  /// Exact lookup inside the shipped dataset — months are ordered by
+  /// AD start, so the scan stops as soon as the date has been passed.
+  /// Returns null outside the supported range — never a guess.
+  BsDay? dayForAdDate(String adDate) {
+    for (final m in _months) {
+      if (adDate.compareTo(m.adStart) < 0) return null;
+      if (adDate.compareTo(m.adEnd) <= 0) {
+        for (final d in m.days) {
+          if (d.adDate == adDate) return d;
+        }
+        return null;
+      }
+    }
+    return null;
+  }
+
   /// Load the JSON asset and parse it into [BsMonth] objects.
   Future<void> load({String asset = 'assets/bs_data.json'}) async {
     if (_loaded) return;

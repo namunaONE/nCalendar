@@ -4,6 +4,21 @@ All notable changes to nCalendar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-16
+
+### Added
+- AD <-> BS date converter tab (lib/widgets/date_converter.dart): exact
+  lookups in both directions with weekday (English + Nepali), festival,
+  and evidence tag; out-of-range dates fail loudly, never guess.
+- BsDataService.dayForAdDate() — reverse lookup (ISO AD date -> BS day).
+- The app now opens on today's Bikram Sambat month; the app bar shows
+  today's BS date and a tap jumps back to it.
+- Bottom NavigationBar: Calendar | Converter (Material 3).
+
+### Fixed
+- CalendarGrid did not reload when the selected year changed — switching
+  years showed stale months. didUpdateWidget now reloads on year change.
+
 ## [1.1.0] - 2026-10-16
 
 ### Added
