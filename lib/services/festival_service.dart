@@ -11,8 +11,8 @@ import 'package:n_calendar/models/bs_day.dart';
 /// Corrections from the 2026-10-16 audit (all chain- or source-verified):
 /// - Indra Jatra main day = Sep 25 (removed an erroneous Sep 10 entry).
 /// - Kojagrat Purnima Oct 26 -> Oct 25: the printed Surya Panchang vrata
-   window (11:04->22:33) provisionally wins the evidence ladder. Linear
-   issue HYA-371 remains open pending the government holiday list.
+///   window (11:04->22:33) provisionally wins the evidence ladder. Linear
+///   issue HYA-371 remains open pending the government holiday list.
 /// - Mha Puja / Nepal Sambat New Year Nov 9 -> Nov 10 (Govardhan Puja
 ///   stays Nov 9).
 /// - Nepali New Year 2084 Apr 13 -> Apr 14 2027 (chain: Chaitra 30 2083

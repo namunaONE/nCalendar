@@ -17,7 +17,7 @@ CSV_PATH = ROOT / 'data' / 'calendar.csv'
 OUT_PATH = ROOT / 'assets' / 'bs_data.json'
 
 SCHEMA = 2
-SOURCE = ('data/calendar.csv - nCalander Bikram Sambat data commons '
+SOURCE = ('data/calendar.csv — nCalander Bikram Sambat data commons '
           '(evidence-tagged); reference: rjach/sambat (Apache-2.0)')
 ALLOWED_EVIDENCE = {'verified', 'consensus', 'disputed', 'projection'}
 
