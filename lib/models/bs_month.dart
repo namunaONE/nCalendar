@@ -10,6 +10,9 @@ class BsMonth {
   final String adStart; // ISO yyyy-MM-dd
   final String adEnd;   // ISO yyyy-MM-dd
   final List<BsDay> days;
+  final String evidence; // verified | consensus | disputed | projection
+  final String sources;
+  final String notes;
 
   const BsMonth({
     required this.bsYear,
@@ -20,6 +23,9 @@ class BsMonth {
     required this.adStart,
     required this.adEnd,
     required this.days,
+    this.evidence = '',
+    this.sources = '',
+    this.notes = '',
   });
 
   factory BsMonth.fromJson(Map<String, dynamic> json) {
@@ -34,6 +40,9 @@ class BsMonth {
       days: (json['days'] as List)
           .map((e) => BsDay.fromJson(e as Map<String, dynamic>))
           .toList(),
+      evidence: json['evidence'] as String? ?? '',
+      sources: json['sources'] as String? ?? '',
+      notes: json['notes'] as String? ?? '',
     );
     // Give each day its year/month context.
     for (final day in month.days) {
@@ -51,6 +60,9 @@ class BsMonth {
         'adStart': adStart,
         'adEnd': adEnd,
         'days': days.map((d) => d.toJson()).toList(),
+        'evidence': evidence,
+        'sources': sources,
+        'notes': notes,
       };
 
   static const List<String> _monthNames = [

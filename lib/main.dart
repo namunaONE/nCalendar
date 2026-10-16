@@ -131,26 +131,13 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const Divider(height: 1),
-                // Calendar grid
+                // Calendar grid (renders its own legend internally)
                 Expanded(
                   child: CalendarGrid(
                     bsYear: _selectedYear,
                     bsMonth: _selectedMonth,
                   ),
                 ),
-                const SizedBox(height: 32),
-                // Legend
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _legendChip('Today', NCalendarTheme.growthGreen),
-                    _legendChip('Festival', NCalendarTheme.growthGreen),
-                    _legendChip('Weekend', Colors.grey),
-                  ],
-                ),
-                const SizedBox(height: 16),
               ],
             ),
       bottomNavigationBar: _currentMonth != null
@@ -159,7 +146,7 @@ class _HomePageState extends State<HomePage> {
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Text(
                 'Source: nCalander Commons Layer 1 · NPT (UTC+05:45) · '
-                '${_currentMonth!.daysInMonth} days',
+                '${_currentMonth!.daysInMonth} days · evidence: ${_currentMonth!.evidence}',
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
@@ -168,32 +155,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _legendChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-        ],
-      ),
-    );
-  }
 }

@@ -9,12 +9,12 @@ import 'package:n_calendar/theme/n_calendar_theme.dart';
 /// Each cell shows the BS day, the mapped AD date, weekday, tithi, and any
 /// festival. Built to consume the nCalander evidence-tagged data commons.
 ///
-/// Responsive behavior (via [LayoutBuilder]):
-/// - xs/sm (< 900px): single month, vertical stack
-/// - md/lg (>= 900px): two or more months side-by-side, denser cells
+/// Responsive behavior (via [LayoutBuilder] + [NCalendarTheme]):
+/// - xs/sm (< 900px): single month (the selected one), vertical stack, large touch targets
+/// - md/lg (>= 900px): 2–3 months side-by-side, the selected month highlighted
 class CalendarGrid extends StatefulWidget {
   final int bsYear;
-  final int bsMonth;
+  final int bsMonth; // 1 = Baisakh ... 12 = Chaitra — the user-selected month
 
   const CalendarGrid({
     super.key,
@@ -27,7 +27,7 @@ class CalendarGrid extends StatefulWidget {
 }
 
 class _CalendarGridState extends State<CalendarGrid> {
-  List<BsMonth> _months = [];
+  List<BsMonth> _yearMonths = [];
   bool _loading = true;
   String? _error;
 
@@ -42,14 +42,11 @@ class _CalendarGridState extends State<CalendarGrid> {
     try {
       await BsDataService.instance.load();
       final service = BsDataService.instance;
-      // Load all months for the selected year so we can render a year view.
-      _months = service.months
+      _yearMonths = service.months
           .where((m) => m.bsYear == widget.bsYear)
           .toList()
         ..sort((a, b) => a.bsMonth.compareTo(b.bsMonth));
-      setState(() {
-        _error = null;
-      });
+      setState(() => _error = null);
     } catch (e) {
       setState(() => _error = e.toString());
     } finally {
@@ -57,13 +54,16 @@ class _CalendarGridState extends State<CalendarGrid> {
     }
   }
 
-  int _monthCountForWidth(double width) {
-    if (width >= 1200) return 3;
-    if (width >= 900) return 2;
-    return 1;
+  BsMonth? get _selectedMonth {
+    try {
+      return _yearMonths.firstWhere((m) => m.bsMonth == widget.bsMonth);
+    } on StateError {
+      return null;
+    }
   }
 
-  Widget _monthGrid(BsMonth month, double cellWidth, double cellHeight) {
+  Widget _monthGrid(BsMonth month, double cellWidth, double cellHeight,
+      {bool isSelected = false}) {
     final firstDay = month.days.first;
     final startIndex = _weekdayIndex(firstDay.adDate); // 0=Sun
 
@@ -81,90 +81,117 @@ class _CalendarGridState extends State<CalendarGrid> {
           null, (startIndex + month.days.length + i) % 7, cellWidth, cellHeight));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${month.bsMonthName} ${month.bsYear}',
-                    style: Theme.of(context).textTheme.headlineSmall
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'AD ${month.adStart} → ${month.adEnd}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${month.daysInMonth} days · NPT (UTC+05:45)',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: _load,
-              icon: const Icon(Icons.refresh, size: 18),
-              label: const Text('Refresh'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
+    final scheme = Theme.of(context).colorScheme;
 
-        // Weekday headers
-        SizedBox(
-          height: 36,
-          child: Row(
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? scheme.primaryContainer.withValues(alpha: 0.15)
+            : scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected
+            ? Border.all(color: scheme.primary, width: 2)
+            : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
-              for (final wd in _weekdayLabels)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      wd,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${month.bsMonthName} ${month.bsYear}',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? scheme.primary : null,
                           ),
                     ),
-                  ),
+                    if (isSelected)
+                      const SizedBox(height: 2),
+                    if (isSelected)
+                      Text(
+                        'SELECTED',
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(
+                          color: scheme.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'AD ${month.adStart} → ${month.adEnd}',
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${month.daysInMonth} days · NPT (UTC+05:45) · ${month.evidence}',
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              if (isSelected)
+                Icon(Icons.check_circle, color: scheme.primary, size: 20),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
 
-        // Grid cells
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            childAspectRatio: cellWidth / cellHeight,
-            mainAxisSpacing: 0.5,
-            crossAxisSpacing: 0.5,
+          // Weekday headers
+          SizedBox(
+            height: 34,
+            child: Row(
+              children: [
+                for (final wd in _weekdayLabels)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        wd,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelMedium
+                            ?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
-          itemCount: cells.length,
-          itemBuilder: (_, i) => cells[i],
-        ),
 
-        const SizedBox(height: 16),
-      ],
+          // Grid cells
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: cellWidth / cellHeight,
+              mainAxisSpacing: 0.5,
+              crossAxisSpacing: 0.5,
+            ),
+            itemCount: cells.length,
+            itemBuilder: (_, i) => cells[i],
+          ),
+        ],
+      ),
     );
   }
 
@@ -229,6 +256,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                 day.adDate,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: scheme.onSurfaceVariant,
+                      fontSize: 11,
                     ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -273,12 +301,41 @@ class _CalendarGridState extends State<CalendarGrid> {
     );
   }
 
+  Widget _legendChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null || _months.isEmpty) {
+    if (_error != null || _yearMonths.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -307,14 +364,25 @@ class _CalendarGridState extends State<CalendarGrid> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final monthCount = _monthCountForWidth(constraints.maxWidth);
-        // Reserve ~40px for padding + header, then divide remaining width.
-        const gridPadding = 48.0;
+        final monthCount = NCalendarTheme.monthCountForWidth(
+          constraints.maxWidth,
+        );
+        const gridPadding = 40.0;
         const cellHeight = 84.0;
         final availableWidth = constraints.maxWidth - gridPadding;
         final cellWidth = availableWidth / (monthCount * 7);
 
-        final yearMonths = _months.take(monthCount).toList();
+        final breakPoint = NCalendarTheme.breakpointOf(context);
+        final isMobile = breakPoint == 'xs' || breakPoint == 'sm';
+
+        // Mobile: show only the selected month.
+        // Desktop: show monthCount months, with selected highlighted.
+        final List<BsMonth> showMonths;
+        if (isMobile) {
+          showMonths = [_selectedMonth!];
+        } else {
+          showMonths = _yearMonths.take(monthCount).toList();
+        }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -330,30 +398,34 @@ class _CalendarGridState extends State<CalendarGrid> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${yearMonths.first.bsMonthName} ${yearMonths.first.bsYear}',
+                          '${_selectedMonth?.bsMonthName ?? ''} ${_selectedMonth?.bsYear ?? ''}',
                           style: Theme.of(context)
                               .textTheme
                               .headlineMedium
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          'AD ${yearMonths.first.adStart} → ${yearMonths.last.adEnd}',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                        ),
+                        if (_selectedMonth != null)
+                          Text(
+                            'AD ${_selectedMonth!.adStart} → ${_selectedMonth!.adEnd}',
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
                         const SizedBox(height: 4),
-                        Text(
-                          '${yearMonths.fold<int>(0, (sum, m) => sum + m.daysInMonth)} total days · NPT (UTC+05:45)',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
-                              ),
-                        ),
+                        if (_selectedMonth != null)
+                          Text(
+                            '${_selectedMonth!.daysInMonth} days · NPT (UTC+05:45) · ${_selectedMonth!.evidence}',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -367,16 +439,31 @@ class _CalendarGridState extends State<CalendarGrid> {
               const SizedBox(height: 20),
 
               // Month grids side-by-side (responsive)
-              Wrap(
-                spacing: 16,
-                runSpacing: 24,
-                children: yearMonths.map((month) {
-                  return SizedBox(
-                    width: availableWidth / monthCount - 16,
-                    child: _monthGrid(month, cellWidth, cellHeight),
-                  );
-                }).toList(),
-              ),
+              if (isMobile)
+                // Mobile: single selected month, full width
+                _monthGrid(
+                  _selectedMonth!,
+                  availableWidth / 7,
+                  cellHeight,
+                  isSelected: true,
+                )
+              else
+                // Desktop: multiple months side-by-side, selected highlighted
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 24,
+                  children: showMonths.map((month) {
+                    return SizedBox(
+                      width: availableWidth / monthCount - 16,
+                      child: _monthGrid(
+                        month,
+                        cellWidth,
+                        cellHeight,
+                        isSelected: month.bsMonth == widget.bsMonth,
+                      ),
+                    );
+                  }).toList(),
+                ),
 
               const SizedBox(height: 32),
 
@@ -389,6 +476,7 @@ class _CalendarGridState extends State<CalendarGrid> {
                   _legendChip('Today', NCalendarTheme.growthGreen),
                   _legendChip('Festival', NCalendarTheme.growthGreen),
                   _legendChip('Weekend', Colors.grey),
+                  _legendChip('Selected month', NCalendarTheme.primaryNavy),
                 ],
               ),
 
@@ -397,35 +485,6 @@ class _CalendarGridState extends State<CalendarGrid> {
           ),
         );
       },
-    );
-  }
-
-  Widget _legendChip(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-        ],
-      ),
     );
   }
 }
