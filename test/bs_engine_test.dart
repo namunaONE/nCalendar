@@ -1,8 +1,6 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:n_calendar/models/bs_day.dart';
-import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 
 /// Anchor test wall for the nCalander data commons (Linear HYA-348
@@ -38,10 +36,7 @@ void main() {
   group('verified month rows', () {
     List<int> lengthsOf(int year) => BsDataService.instance.months
         .where((m) => m.bsYear == year)
-        .toList()
-        .asMap()
-        .map((i, m) => MapEntry(i + 1, m.daysInMonth))
-        .values
+        .map((m) => m.daysInMonth)
         .toList();
 
     test('2081 row', () {
@@ -124,18 +119,18 @@ void main() {
         final nextStart = _parse(months[i + 1].adStart);
         final expected = _parse(months[i].adEnd).add(const Duration(days: 1));
         expect(nextStart, expected,
-            reason: 'Broken chain at ${months[i]}');
+            reason: 'Broken chain at \${months[i]}');
       }
     });
 
     test('every month is internally consistent', () {
       for (final month in BsDataService.instance.months) {
         expect(month.days.length, month.daysInMonth,
-            reason: 'Day count mismatch in $month');
+            reason: 'Day count mismatch in \$month');
         for (var i = 0; i < month.days.length; i++) {
           expect(month.days[i].bsDay, i + 1);
           expect(month.days[i].weekday, _weekdayOf(month.days[i].adDate),
-              reason: 'Weekday mismatch for ${month.days[i]}');
+              reason: 'Weekday mismatch for \${month.days[i]}');
         }
       }
     });
