@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:n_calendar/models/bs_day.dart';
 import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
+import 'package:n_calendar/services/festival_service.dart';
+import 'package:n_calendar/services/today_service.dart';
 import 'package:n_calendar/theme/n_calendar_theme.dart';
 
 /// A monthly calendar grid showing Bikram Sambat dates with AD conversion.
@@ -30,6 +32,7 @@ class _CalendarGridState extends State<CalendarGrid> {
   List<BsMonth> _yearMonths = [];
   bool _loading = true;
   String? _error;
+  BsDay? _todayDay;
 
   @override
   void initState() {
@@ -46,6 +49,14 @@ class _CalendarGridState extends State<CalendarGrid> {
           .where((m) => m.bsYear == widget.bsYear)
           .toList()
         ..sort((a, b) => a.bsMonth.compareTo(b.bsMonth));
+      // Attach festival data to each day.
+      for (final m in _yearMonths) {
+        for (final d in m.days) {
+          d.festival = FestivalService.festivalFor(d);
+        }
+      }
+      // Detect today's BS date.
+      _todayDay = TodayService.instance.today();
       setState(() => _error = null);
     } catch (e) {
       setState(() => _error = e.toString());
@@ -67,13 +78,20 @@ class _CalendarGridState extends State<CalendarGrid> {
     final firstDay = month.days.first;
     final startIndex = _weekdayIndex(firstDay.adDate); // 0=Sun
 
+    final todayAdDate = TodayService.instance.todayAdDate;
     final cells = <Widget>[];
     for (var i = 0; i < startIndex; i++) {
       cells.add(_dayCell(null, i, cellWidth, cellHeight));
     }
     for (var i = 0; i < month.days.length; i++) {
+      final day = month.days[i];
       cells.add(_dayCell(
-          month.days[i], (startIndex + i) % 7, cellWidth, cellHeight));
+        day,
+        (startIndex + i) % 7,
+        cellWidth,
+        cellHeight,
+        isToday: day.adDate == todayAdDate,
+      ));
     }
     final trailing = (7 - ((startIndex + month.days.length) % 7)) % 7;
     for (var i = 0; i < trailing; i++) {
@@ -205,22 +223,27 @@ class _CalendarGridState extends State<CalendarGrid> {
   }
 
   Widget _dayCell(BsDay? day, int weekdayIndex,
-      double cellWidth, double cellHeight) {
+      double cellWidth, double cellHeight, {bool isToday = false}) {
     final isWeekend = weekdayIndex == 0 || weekdayIndex == 6;
     final hasFestival = day?.festival != null && day!.festival!.isNotEmpty;
     final scheme = Theme.of(context).colorScheme;
+    final isSelectedToday = isToday && day?.adDate == _todayDay?.adDate;
 
     return Container(
       width: cellWidth,
       height: cellHeight,
       decoration: BoxDecoration(
-        border: Border.all(
-          color: scheme.outlineVariant,
-          width: 0.5,
-        ),
-        color: isWeekend
-            ? scheme.surfaceContainerLowest
-            : null,
+        border: isSelectedToday
+            ? Border.all(color: NCalendarTheme.growthGreen, width: 2)
+            : Border.all(
+                color: scheme.outlineVariant,
+                width: 0.5,
+              ),
+        color: isSelectedToday
+            ? scheme.secondaryContainer.withValues(alpha: 0.35)
+            : isWeekend
+                ? scheme.surfaceContainerLowest
+                : null,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
@@ -384,6 +407,8 @@ class _CalendarGridState extends State<CalendarGrid> {
           showMonths = _yearMonths.take(monthCount).toList();
         }
 
+        final todayDay = _todayDay;
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -436,7 +461,61 @@ class _CalendarGridState extends State<CalendarGrid> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+
+              // Today banner (shown when today's month is displayed)
+              if (todayDay != null &&
+                  todayDay.bsYear == widget.bsYear &&
+                  todayDay.bsMonth == widget.bsMonth)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: NCalendarTheme.growthGreen.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: NCalendarTheme.growthGreen.withValues(alpha: 0.5),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.today,
+                        color: NCalendarTheme.growthGreen,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Today: ${todayDay.bsDay} ${BsMonth.monthName(todayDay.bsMonth)} ${todayDay.bsYear}',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: NCalendarTheme.growthGreen,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'AD ${todayDay.adDate} · ${todayDay.weekdayNepali}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                color: NCalendarTheme.growthGreen,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 8),
 
               // Month grids side-by-side (responsive)
               if (isMobile)

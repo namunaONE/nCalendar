@@ -9,7 +9,7 @@ class BsDay {
   final String weekday;
   final String weekdayNepali;
   final String tithi;
-  final String? festival;
+  String? festival;
 
   BsDay({
     required this.bsDay,
