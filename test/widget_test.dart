@@ -1,13 +1,23 @@
-// Widget smoke test for nCalendar — diagnostic build: dumps the visible
-// widget tree into the failure reason so CI failures are self-explaining.
+// Widget smoke test for nCalendar.
+//
+// The data service is warmed in setUpAll (outside the fake async zone)
+// so the boot path is deterministic; asset correctness is covered by
+// test/bs_engine_test.dart and test/data_invariants_test.dart.
+//
+// The app opens on today's BS month (today-default). The test surface
+// is phone-sized (800x600 physical = ~267x200 logical), so the
+// responsive grid shows exactly ONE month card: the selected month,
+// i.e. today's. All assertions are computed from the real data
+// service so they stay valid on any CI date, and fall back to the
+// Baisakh 2083 default once today leaves the shipped range (2027+).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:n_calendar/main.dart';
+import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
-import 'package:n_calendar/widgets/calendar_grid.dart';
-import 'package:n_calendar/widgets/date_converter.dart';
+import 'package:n_calendar/services/today_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -24,45 +34,48 @@ void main() {
     expect(find.byType(Scaffold), findsOneWidget);
     expect(find.byType(AppBar), findsOneWidget);
 
-    // Let the (already warm) boot microtasks resolve and paint.
+    // The app must open on today's BS month when today is inside the
+    // shipped dataset (BS 1975-2083); post-2027 it falls back to the
+    // default selection (Baisakh 2083).
+    final today = TodayService.instance.today();
+    final expectedHeader = today == null
+        ? 'Baisakh 2083'
+        : '${BsMonth.monthName(today.bsMonth)} ${today.bsYear}';
+
     var loaded = false;
     for (var attempt = 0; attempt < 20 && !loaded; attempt++) {
       await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 100)));
       await tester.pump();
-      loaded = find.text('Baisakh 2083').evaluate().isNotEmpty;
+      loaded = find.text(expectedHeader).evaluate().isNotEmpty;
     }
     await tester.pumpAndSettle();
 
-    expect(
-      loaded,
-      isTrue,
-      reason: _diagnostics(tester),
-    );
+    expect(loaded, isTrue,
+        reason: 'Calendar data did not load within the retry window');
 
-    // The month grid renders with data.
-    expect(find.text('Baisakh 2083'), findsWidgets);
-    // Baisakh 1 2083 = 2026-04-14 (verified anchor).
-    expect(find.text('2026-04-14'), findsWidgets);
+    // The month grid renders with data: the header of today's month
+    // plus the first day cell (exact AD anchor from the dataset).
+    expect(find.text(expectedHeader), findsWidgets);
+    if (today != null) {
+      expect(
+        find.text(
+            'Today: ${today.bsDay} ${BsMonth.monthName(today.bsMonth)} ${today.bsYear}'),
+        findsOneWidget,
+        reason: 'The app must open on today (today banner visible)',
+      );
+      expect(
+        find.text('${BsMonth.monthName(today.bsMonth)} ${today.bsDay}, ${today.bsYear}'),
+        findsOneWidget,
+        reason: 'The app bar must show today as a jump-back chip',
+      );
+      final month = BsDataService.instance.months.firstWhere(
+        (m) => m.bsYear == today.bsYear && m.bsMonth == today.bsMonth,
+      );
+      expect(find.text(month.adStart), findsWidgets);
+    }
 
     // No error state.
     expect(find.text('Failed to load calendar data'), findsNothing);
   });
-}
-
-String _diagnostics(WidgetTester tester) {
-  final texts = find
-      .byType(Text)
-      .evaluate()
-      .map((e) => (e.widget as Text).data)
-      .whereType<String>()
-      .take(60)
-      .toList();
-  return 'Calendar did not render within the retry window. '
-      'isLoaded=${BsDataService.instance.isLoaded} '
-      'months=${BsDataService.instance.months.length} '
-      'grids=${find.byType(CalendarGrid).evaluate().length} '
-      'converters=${find.byType(DateConverter).evaluate().length} '
-      'spinners=${find.byType(CircularProgressIndicator).evaluate().length} '
-      'texts=${texts.join(' | ')}';
 }
