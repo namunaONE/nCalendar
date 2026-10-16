@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Verify generated data is in sync
+        run: python scripts/gen_bs_data.py --check
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        id: test
+        run: flutter test 2>&1 | tee test_output.txt; exit ${PIPESTATUS[0]}
+        continue-on-error: true
+
+      - name: Publish test output to the PR on failure
+        if: steps.test.outcome == 'failure' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          tail -n 150 test_output.txt >> comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+
+      - name: Fail the job if tests failed
+        if: steps.test.outcome == 'failure'
+        run: exit 1
