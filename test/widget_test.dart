@@ -1,19 +1,13 @@
-// Widget smoke test for nCalendar.
-//
-// Since the data asset became compact (~40 KB), the test environment
-// can load it for real and assert data-driven content renders.
-//
-// The service is warmed in setUpAll (outside the fake async zone, like
-// the engine/invariant tests) so the boot path is deterministic:
-// expanding 39k days inside the short runAsync retry windows is
-// flaky on slow CI runners. Asset correctness itself is covered by
-// test/bs_engine_test.dart and test/data_invariants_test.dart.
+// Widget smoke test for nCalendar — diagnostic build: dumps the visible
+// widget tree into the failure reason so CI failures are self-explaining.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:n_calendar/main.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
+import 'package:n_calendar/widgets/calendar_grid.dart';
+import 'package:n_calendar/widgets/date_converter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,18 +26,21 @@ void main() {
 
     // Let the (already warm) boot microtasks resolve and paint.
     var loaded = false;
-    for (var attempt = 0; attempt < 10 && !loaded; attempt++) {
+    for (var attempt = 0; attempt < 20 && !loaded; attempt++) {
       await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 50)));
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
       await tester.pump();
       loaded = find.text('Baisakh 2083').evaluate().isNotEmpty;
     }
     await tester.pumpAndSettle();
 
-    // The month grid renders with data (Baisakh is shown alongside the
-    // today-default selection on md+ viewports).
-    expect(loaded, isTrue,
-        reason: 'Calendar data did not load within the retry window');
+    expect(
+      loaded,
+      isTrue,
+      reason: _diagnostics(tester),
+    );
+
+    // The month grid renders with data.
     expect(find.text('Baisakh 2083'), findsWidgets);
     // Baisakh 1 2083 = 2026-04-14 (verified anchor).
     expect(find.text('2026-04-14'), findsWidgets);
@@ -51,4 +48,21 @@ void main() {
     // No error state.
     expect(find.text('Failed to load calendar data'), findsNothing);
   });
+}
+
+String _diagnostics(WidgetTester tester) {
+  final texts = find
+      .byType(Text)
+      .evaluate()
+      .map((e) => (e.widget as Text).data)
+      .whereType<String>()
+      .take(60)
+      .toList();
+  return 'Calendar did not render within the retry window. '
+      'isLoaded=${BsDataService.instance.isLoaded} '
+      'months=${BsDataService.instance.months.length} '
+      'grids=${find.byType(CalendarGrid).evaluate().length} '
+      'converters=${find.byType(DateConverter).evaluate().length} '
+      'spinners=${find.byType(CircularProgressIndicator).evaluate().length} '
+      'texts=${texts.join(' | ')}';
 }
