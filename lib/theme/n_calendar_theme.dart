@@ -30,7 +30,7 @@ class NCalendarTheme {
           centerTitle: true,
           elevation: 0,
         ),
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           elevation: 0,
           margin: EdgeInsets.zero,
         ),
@@ -48,7 +48,7 @@ class NCalendarTheme {
           centerTitle: true,
           elevation: 0,
         ),
-        cardTheme: const CardTheme(
+        cardTheme: const CardThemeData(
           elevation: 0,
           margin: EdgeInsets.zero,
         ),

@@ -1,0 +1,40 @@
+name: Sync Linear project docs
+
+on:
+  schedule:
+    # Daily 06:00 UTC refresh of the Linear project snapshot
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run Linear sync script
+        id: sync
+        continue-on-error: true
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          python .github/scripts/sync-linear-docs.py
+          echo "changed=$?" >> $GITHUB_OUTPUT
+
+      - name: Commit docs changes
+        if: steps.sync.outputs.changed == '1'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/05-linear-rounds.md
+          git commit -m "docs: refresh Linear project snapshot"
+          git push

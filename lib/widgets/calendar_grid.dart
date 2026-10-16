@@ -310,7 +310,6 @@ class _CalendarGridState extends State<CalendarGrid> {
         final monthCount = _monthCountForWidth(constraints.maxWidth);
         // Reserve ~40px for padding + header, then divide remaining width.
         const gridPadding = 48.0;
-        const headerHeight = 96.0;
         const cellHeight = 84.0;
         final availableWidth = constraints.maxWidth - gridPadding;
         final cellWidth = availableWidth / (monthCount * 7);
