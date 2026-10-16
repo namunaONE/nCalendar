@@ -30,6 +30,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Verify generated data is in sync
+        run: python scripts/gen_bs_data.py --check
+
       - name: Analyze
         run: flutter analyze
 
