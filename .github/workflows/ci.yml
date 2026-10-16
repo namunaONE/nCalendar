@@ -4,6 +4,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  pull-requests: write
+
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
@@ -27,4 +30,23 @@ jobs:
         run: flutter analyze
 
       - name: Test
-        run: flutter test
+        id: test
+        run: flutter test 2>&1 | tee test_output.txt; exit ${PIPESTATUS[0]}
+        continue-on-error: true
+
+      - name: Publish test output to the PR on failure
+        if: steps.test.outcome == 'failure' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo '### Test output (tail of 150 lines)'
+            echo "```"
+            tail -n 150 test_output.txt
+            echo "```"
+          } > comment_body.md
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+
+      - name: Fail the job if tests failed
+        if: steps.test.outcome == 'failure'
+        run: exit 1
