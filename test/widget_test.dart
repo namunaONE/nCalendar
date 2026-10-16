@@ -1,7 +1,7 @@
-// This is a basic Flutter widget test for nCalendar.
+// Widget smoke test for nCalendar.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package.
+// Since the data asset became compact (~40 KB), the test environment
+// can load it for real and assert data-driven content renders.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,24 +9,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:n_calendar/main.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   testWidgets('nCalendar app smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
     await tester.pumpWidget(const NCalendarApp());
 
-    // Verify the app title shows.
+    // App shell renders.
     expect(find.text('nCalendar'), findsOneWidget);
-
-    // Verify the app shell renders without crashing.
     expect(find.byType(Scaffold), findsOneWidget);
     expect(find.byType(AppBar), findsOneWidget);
 
-    // Pump frames to allow async BS data loading to start without errors.
-    // Note: full data load (8.6MB JSON) is not awaited here because
-    // rootBundle.loadString does not complete in the Flutter test environment
-    // for large asset files. Data loading is verified in production.
-    await tester.pump();
+    // Let the real asset IO complete (compact schema-2 asset).
+    var loaded = false;
+    for (var attempt = 0; attempt < 10 && !loaded; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump();
+      loaded = find.text('Baisakh 2083').evaluate().isNotEmpty;
+    }
+    await tester.pumpAndSettle();
 
-    // Verify no error state is shown.
+    // The selected month (Baisakh 2083) renders with data.
+    expect(loaded, isTrue,
+        reason: 'Calendar data did not load within the retry window');
+    expect(find.text('Baisakh 2083'), findsWidgets);
+    // Baisakh 1 2083 = 2026-04-14 (verified anchor).
+    expect(find.text('2026-04-14'), findsWidgets);
+
+    // No error state.
     expect(find.text('Failed to load calendar data'), findsNothing);
   });
 }
