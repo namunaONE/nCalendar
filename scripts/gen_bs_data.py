@@ -17,7 +17,7 @@ CSV_PATH = ROOT / 'data' / 'calendar.csv'
 OUT_PATH = ROOT / 'assets' / 'bs_data.json'
 
 SCHEMA = 2
-SOURCE = ('data/calendar.csv — nCalander Bikram Sambat data commons '
+SOURCE = ('data/calendar.csv - nCalander Bikram Sambat data commons '
           '(evidence-tagged); reference: rjach/sambat (Apache-2.0)')
 ALLOWED_EVIDENCE = {'verified', 'consensus', 'disputed', 'projection'}
 
@@ -29,14 +29,14 @@ def parse_rows():
                 + [f"m{i:02d}" for i in range(1, 13)]
                 + ["evidence", "sources", "notes"])
     if header != expected:
-        raise SystemExit(f"Unexpected CSV header: {header}")
+        raise SystemExit("Unexpected CSV header: " + str(header))
     rows = []
     for line in lines[1:]:
         if not line.strip():
             continue
         parts = line.split(",")
         if len(parts) != 17:
-            raise SystemExit(f"Bad row ({len(parts)} fields): {line}")
+            raise SystemExit("Bad row ({} fields): {}".format(len(parts), line))
         rows.append({
             "bsYear": int(parts[0]),
             "baisakh1Ad": parts[1],
@@ -52,14 +52,14 @@ def validate(rows):
     for row in rows:
         lengths = row["monthLengths"]
         if len(lengths) != 12:
-            raise SystemExit(f"{row[chr(39)+chr(98)+chr(115)+chr(89)+chr(101)+chr(97)+chr(114)+chr(39)]}: expected 12 month lengths")
+            raise SystemExit("{}: expected 12 month lengths".format(row["bsYear"]))
         if any(not 29 <= length <= 32 for length in lengths):
-            raise SystemExit(f"{row[\"bsYear\"]}: month length out of range: {lengths}")
+            raise SystemExit("{}: month length out of range: {}".format(row["bsYear"], lengths))
         total = sum(lengths)
         if not 364 <= total <= 367:
-            raise SystemExit(f"{row[\"bsYear\"]}: implausible year length {total}")
+            raise SystemExit("{}: implausible year length {}".format(row["bsYear"], total))
         if row["evidence"] not in ALLOWED_EVIDENCE:
-            raise SystemExit(f"{row[\"bsYear\"]}: unknown evidence class {row[\"evidence\"]}")
+            raise SystemExit("{}: unknown evidence class {}".format(row["bsYear"], row["evidence"]))
     years = [row["bsYear"] for row in rows]
     if years != list(range(min(years), max(years) + 1)):
         raise SystemExit("Year sequence is not contiguous")
@@ -79,11 +79,11 @@ def main():
             print("STALE: assets/bs_data.json does not match data/calendar.csv.")
             print("Regenerate with: python scripts/gen_bs_data.py")
             sys.exit(1)
-        print(f"OK: assets/bs_data.json is in sync ({len(data[\"years\"])} year rows)")
+        print("OK: assets/bs_data.json is in sync ({} year rows)".format(len(data["years"])))
         return
     out = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
     OUT_PATH.write_text(out, encoding="utf-8")
-    print(f"Wrote {len(data[\"years\"])} year rows to {OUT_PATH}")
+    print("Wrote {} year rows to {}".format(len(data["years"]), OUT_PATH))
 
 
 if __name__ == "__main__":

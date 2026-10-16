@@ -3,13 +3,18 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:n_calendar/models/bs_day.dart';
 import 'package:n_calendar/models/bs_month.dart';
+import 'package:n_calendar/models/bs_year.dart';
+import 'package:n_calendar/services/bs_calendar_engine.dart';
 
 /// Loads the Bikram Sambat data commons from a bundled JSON asset.
 ///
-/// The sample `assets/bs_data.json` ships with the app. To wire this up to
-/// the real nCalander commons, replace `assets/bs_data.json` with the
-/// evidence-tagged `calendar.csv`/JSON export (see Linear project nCalander,
-/// Phase 1–3) and/or switch this loader to fetch from the neutral commons org.
+/// Schema 2 (current): assets/bs_data.json ships one compact row per BS
+/// year (Baisakh 1 AD anchor + 12 month lengths + evidence tags); the
+/// full month/day grid is expanded at runtime by [BsCalendarEngine].
+/// Schema 1 (legacy, pre-expanded 'months' list) is still accepted.
+///
+/// The asset is generated from data/calendar.csv by
+/// scripts/gen_bs_data.py — never hand-edited; CI verifies sync.
 class BsDataService {
   BsDataService._();
 
@@ -43,10 +48,18 @@ class BsDataService {
     if (_loaded) return;
     final jsonString = await rootBundle.loadString(asset);
     final data = jsonDecode(jsonString) as Map<String, dynamic>;
-    final monthsList = data['months'] as List<dynamic>;
-    _months = monthsList
-        .map((e) => BsMonth.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final schema = data['schema'] as int? ?? 1;
+    if (schema >= 2) {
+      final years = (data['years'] as List<dynamic>)
+          .map((e) => BsYearRow.fromJson(e as Map<String, dynamic>))
+          .toList();
+      _months = BsCalendarEngine.expandYears(years);
+    } else {
+      final monthsList = data['months'] as List<dynamic>;
+      _months = monthsList
+          .map((e) => BsMonth.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
     _loaded = true;
   }
 
