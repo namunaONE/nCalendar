@@ -39,12 +39,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          {
-            echo '### Test output (tail of 150 lines)'
-            echo "```"
-            tail -n 150 test_output.txt
-            echo "```"
-          } > comment_body.md
+          printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          tail -n 150 test_output.txt >> comment_body.md
+          printf '%s\n' '```' >> comment_body.md
           gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
 
       - name: Fail the job if tests failed
