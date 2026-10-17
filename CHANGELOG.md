@@ -4,6 +4,15 @@ All notable changes to nCalendar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-17
+
+### Structural refactor — pure-Dart `lib/core` layer (C2a)
+
+- **Move, not change**: `bs_day`, `bs_month`, `bs_year` and the calendar engine now live under `lib/core/` (models + engine). Zero behavior change — no data, logic, or UI edits; import paths only.
+- `lib/core` has **zero Flutter imports** — it is the seed of the future pure-Dart `nbs` package (R10 architecture plan, Linear HYA-375).
+- New `test/core_purity_test.dart` purity guard: CI fails if any `lib/core` file ever imports `package:flutter` or `dart:ui`.
+- All 28 existing tests pass with import-path updates only (no behavior edits).
+
 ## [1.2.2] - 2026-10-17
 
 ### Added

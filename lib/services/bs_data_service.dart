@@ -1,10 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
-import 'package:n_calendar/models/bs_day.dart';
-import 'package:n_calendar/models/bs_month.dart';
-import 'package:n_calendar/models/bs_year.dart';
-import 'package:n_calendar/services/bs_calendar_engine.dart';
+import 'package:n_calendar/core/models/bs_day.dart';
+import 'package:n_calendar/core/models/bs_month.dart';
+import 'package:n_calendar/core/models/bs_year.dart';
+import 'package:n_calendar/core/engine/bs_calendar_engine.dart';
 
 /// Loads the Bikram Sambat data commons from a bundled JSON asset.
 ///

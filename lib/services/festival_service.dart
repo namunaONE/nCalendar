@@ -1,4 +1,4 @@
-import 'package:n_calendar/models/bs_day.dart';
+import 'package:n_calendar/core/models/bs_day.dart';
 
 /// Festival data for BS 2083, cross-referenced from verified sources:
 /// - nepalicalendar.online (NPNS-following), nepalipatro.com.np, hamropatro.com
