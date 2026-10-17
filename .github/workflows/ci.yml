@@ -44,13 +44,10 @@ jobs:
         run: |
           PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
           if [ -n "${PR_NUMBER}" ]; then
-            printf '%s
-' '### Analyze output' > comment_body.md
-            printf '%s
-' '```' >> comment_body.md
+            printf '%s\n' '### Analyze output' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
             tail -n 60 analyze_output.txt >> comment_body.md
-            printf '%s
-' '```' >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
             gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
           fi
 
@@ -70,13 +67,10 @@ jobs:
         run: |
           PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
           if [ -n "${PR_NUMBER}" ]; then
-            printf '%s
-' '### Test output (tail of 150 lines)' > comment_body.md
-            printf '%s
-' '```' >> comment_body.md
+            printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
             tail -n 150 test_output.txt >> comment_body.md
-            printf '%s
-' '```' >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
             gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
           fi
 
@@ -101,13 +95,10 @@ jobs:
         run: |
           PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
           if [ -n "${PR_NUMBER}" ]; then
-            printf '%s
-' '### Web build output (tail of 60 lines)' > comment_body.md
-            printf '%s
-' '```' >> comment_body.md
+            printf '%s\n' '### Web build output (tail of 60 lines)' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
             tail -n 60 build_output.txt >> comment_body.md
-            printf '%s
-' '```' >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
             gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
           fi
 
@@ -118,16 +109,11 @@ jobs:
       - name: Bundle size report
         run: |
           {
-            printf '%s
-' '## Bundle size report (PR build)'
-            printf '%s
-' ''
-            printf '%s
-' '```'
+            printf '%s\n' '## Bundle size report (PR build)'
+            printf '%s\n' ''
+            printf '%s\n' '```'
             du -ah build/web | sort -rh | head -25
-            printf '%s
-' ''
+            printf '%s\n' ''
             du -sh build/web
-            printf '%s
-' '```'
+            printf '%s\n' '```'
           } >> "$GITHUB_STEP_SUMMARY"
