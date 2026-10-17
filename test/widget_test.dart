@@ -25,6 +25,10 @@ import 'package:n_calendar/main.dart';
 import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 import 'package:n_calendar/services/today_service.dart';
+// The deferred prefix is used below via converter_lib.loadLibrary();
+// the analyzer does not count loadLibrary() as member usage and
+// flags this as unused — an ignore is the honest fix here.
+// ignore: unused_import
 import 'package:n_calendar/widgets/date_converter.dart'
     deferred as converter_lib;
 
