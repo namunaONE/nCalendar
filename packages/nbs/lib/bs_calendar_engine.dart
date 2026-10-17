@@ -1,6 +1,6 @@
-import 'package:n_calendar/core/models/bs_day.dart';
-import 'package:n_calendar/core/models/bs_month.dart';
-import 'package:n_calendar/core/models/bs_year.dart';
+import 'bs_day.dart';
+import 'bs_month.dart';
+import 'bs_year.dart';
 
 /// Expands compact BS year rows (Baisakh 1 AD anchor + 12 month lengths)
 /// into the full [BsMonth] / [BsDay] object graph consumed by the UI.

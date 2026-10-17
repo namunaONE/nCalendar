@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:n_calendar/core/models/bs_month.dart';
+import 'package:nbs/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 import 'package:n_calendar/services/today_service.dart';
 import 'package:n_calendar/theme/n_calendar_theme.dart';

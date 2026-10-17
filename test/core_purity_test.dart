@@ -2,23 +2,22 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// C2a purity guard (Linear HYA-375, R10 architecture round).
-/// lib/core is the seed of the future pure-Dart nbs package: it must
-/// never import package:flutter or dart:ui. This test fails the build
-/// if that boundary is ever crossed.
+/// Purity guard (C2a HYA-375, repointed in C2b): the nbs package
+/// (packages/nbs) is pure Dart — it must never import package:flutter
+/// or dart:ui. This test fails the build if that boundary is crossed.
 void main() {
-  test('lib/core stays pure Dart (no package:flutter / dart:ui imports)', () {
-    final coreDir = Directory('lib/core');
-    expect(coreDir.existsSync(), isTrue,
-        reason: 'lib/core directory must exist');
+  test('the nbs package stays pure Dart (no package:flutter / dart:ui imports)', () {
+    final nbsDir = Directory('packages/nbs/lib');
+    expect(nbsDir.existsSync(), isTrue,
+        reason: 'packages/nbs/lib directory must exist');
 
-    final dartFiles = coreDir
+    final dartFiles = nbsDir
         .listSync(recursive: true)
         .whereType<File>()
         .where((f) => f.path.endsWith('.dart'))
         .toList();
     expect(dartFiles, isNotEmpty,
-        reason: 'lib/core must contain the extracted core files');
+        reason: 'packages/nbs/lib must contain the core files');
 
     final forbidden = RegExp(
         r"""(?:import|export)\s+['"][^'"]*(?:package:flutter|dart:ui)[^'"]*['"]""");
@@ -32,6 +31,6 @@ void main() {
 
     expect(offenders, isEmpty,
         reason:
-            'lib/core must stay pure Dart. Offending files: ${offenders.join(', ')}');
+            'packages/nbs/lib must stay pure Dart. Offending files: ${offenders.join(', ')}');
   });
 }

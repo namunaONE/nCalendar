@@ -1,0 +1,15 @@
+name: nbs
+description: "Pure-Dart Bikram Sambat (BS) calendar core: evidence-tagged BS-AD date conversion that fails honestly (null) beyond its data. Bring your own dataset; nbs never guesses."
+version: 0.1.0
+repository: https://github.com/namunaONE/nCalendar
+issue_tracker: https://github.com/namunaONE/nCalendar/issues
+
+environment:
+  sdk: ^3.13.4
+
+# Intentionally empty: nbs is pure Dart (no Flutter, no io, no network).
+dependencies:
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
