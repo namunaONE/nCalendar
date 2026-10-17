@@ -48,3 +48,18 @@ jobs:
       - name: Fail the job if tests failed
         if: steps.test.outcome == 'failure'
         run: exit 1
+
+      - name: Build web (bundle diet smoke: icon tree-shake + deferred split)
+        run: flutter build web --release --base-href "/nCalendar/" --tree-shake-icons
+
+      - name: Bundle size report
+        run: |
+          {
+            printf '%s\n' '## Bundle size report (PR build)'
+            printf '%s\n' ''
+            printf '%s\n' '```'
+            du -ah build/web | sort -rh | head -25
+            printf '%s\n' ''
+            du -sh build/web
+            printf '%s\n' '```'
+          } >> "$GITHUB_STEP_SUMMARY"

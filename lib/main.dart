@@ -4,7 +4,11 @@ import 'package:n_calendar/services/bs_data_service.dart';
 import 'package:n_calendar/services/today_service.dart';
 import 'package:n_calendar/theme/n_calendar_theme.dart';
 import 'package:n_calendar/widgets/calendar_grid.dart';
-import 'package:n_calendar/widgets/date_converter.dart';
+
+// Deferred import (C1 bundle diet): the converter is compiled into a
+// separate dart2js part file and excluded from the initial JS payload.
+// It loads on the first switch to the Converter tab via loadLibrary().
+import 'package:n_calendar/widgets/date_converter.dart' deferred as converter;
 
 void main() {
   runApp(const NCalendarApp());
@@ -40,6 +44,11 @@ class _HomePageState extends State<HomePage> {
   bool _loading = true;
   List<BsMonth> _months = [];
 
+  // Deferred converter library state (C1 bundle diet).
+  bool _converterLoaded = false;
+  bool _converterLoading = false;
+  bool _converterError = false;
+
   @override
   void initState() {
     super.initState();
@@ -69,6 +78,32 @@ class _HomePageState extends State<HomePage> {
       _selectedMonth = today.bsMonth;
       if (selectTab) _tabIndex = 0;
     });
+  }
+
+  void _onTabSelected(int index) {
+    setState(() => _tabIndex = index);
+    if (index == 1) {
+      _ensureConverterLoaded();
+    }
+  }
+
+  /// Loads the deferred converter library on first use. On failure the
+  /// user sees an honest error message and can retry by switching tabs.
+  Future<void> _ensureConverterLoaded() async {
+    if (_converterLoaded || _converterLoading) return;
+    setState(() {
+      _converterLoading = true;
+      _converterError = false;
+    });
+    try {
+      await converter.loadLibrary();
+      _converterLoaded = true;
+    } catch (_) {
+      _converterError = true;
+    } finally {
+      _converterLoading = false;
+      if (mounted) setState(() {});
+    }
   }
 
   BsMonth? get _currentMonth {
@@ -216,7 +251,22 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                const DateConverter(),
+                // Converter tab: rendered only from the deferred library,
+                // with a loading state and an honest error + retry path.
+                _converterLoaded
+                    ? const converter.DateConverter()
+                    : Center(
+                        child: _converterError
+                            ? const Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  'Converter failed to load — switch to the '
+                                  'Calendar tab and back to retry.',
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            : const CircularProgressIndicator(),
+                      ),
               ],
             ),
       bottomNavigationBar: _currentMonth != null
@@ -225,8 +275,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 NavigationBar(
                   selectedIndex: _tabIndex,
-                  onDestinationSelected: (index) =>
-                      setState(() => _tabIndex = index),
+                  onDestinationSelected: _onTabSelected,
                   destinations: const [
                     NavigationDestination(
                       icon: Icon(Icons.calendar_month),

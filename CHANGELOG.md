@@ -4,6 +4,28 @@ All notable changes to nCalendar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-10-17
+
+### Changed
+- Web bundle diet (cycle C1): the date converter is now a dart2js
+  deferred library — it is compiled into a separate part file and
+  excluded from the initial JS payload, loading on the first switch to
+  the Converter tab. Loading state and an honest error + retry path
+  (switch tabs) if the deferred part fails to fetch.
+- --tree-shake-icons on both the Pages deploy build and the PR CI
+  build: the app uses only 7 const Material icons, so the full icon
+  font no longer ships.
+- CI (ci.yml) now builds the web bundle on every PR — icon tree-shake
+  and deferred-split regressions are caught before merge — and both
+  workflows publish a bundle size report (build/web breakdown) to the
+  job summary for before/after comparison.
+
+### Note
+- No data or conversion-logic changes in this release: calendar.csv
+  remains the generated source of truth, out-of-range dates still fail
+  honestly. Initial-JS reduction is measured in the CI bundle size
+  report; the <2 MB initial-JS goal is NOT claimed by this release.
+
 ## [1.2.0] - 2026-10-16
 
 ### Added
