@@ -121,27 +121,37 @@ void main() {
     await tester.pump();
 
     var visible = false;
-    for (var attempt = 0; attempt < 20 && !visible; attempt++) {
+    var errorShown = false;
+    for (var attempt = 0; attempt < 20 && !visible && !errorShown;
+        attempt++) {
       await tester.pump(const Duration(milliseconds: 50));
+      // Real-async window: on the test VM the deferred loader only
+      // completes inside runAsync windows (runs #14-#19 evidence:
+      // with windows the spinner stops, without them it spins
+      // forever).
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
       visible = find.text('AD → BS').evaluate().isNotEmpty;
-    }
-    await tester.pumpAndSettle();
-
-    if (!visible) {
-      // Compact diagnostics — stdout lands in the CI PR comment.
-      final errorShown = find
+      errorShown = find
           .textContaining('Converter failed to load')
           .evaluate()
           .isNotEmpty;
-      final converterInTree =
-          find.text('BS → AD', skipOffstage: false).evaluate().isNotEmpty;
-      debugPrint('converter-tab debug: errorShown=$errorShown, '
-          'converterWidgetsInTree=$converterInTree');
+    }
+    debugPrint(
+        'converter-tab debug: visible=$visible, errorShown=$errorShown');
+
+    if (visible) {
+      // Regression guard: the loaded converter must settle — any
+      // infinite animation (e.g. a stray spinner) fails here.
+      await tester.pumpAndSettle();
     }
 
     expect(visible, isTrue,
-        reason: 'Deferred converter library did not load and render '
-            '(see converter-tab debug line in the log above)');
+        reason: errorShown
+            ? 'Deferred converter load FAILED on the test VM: the '
+              'honest error card is shown (loadLibrary threw)'
+            : 'Converter tab stuck on the loading spinner — the '
+              'deferred load never resolved');
     expect(find.text('BS → AD'), findsOneWidget);
     expect(find.text('Pick an AD date'), findsOneWidget);
   });
