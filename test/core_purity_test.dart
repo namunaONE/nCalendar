@@ -31,7 +31,7 @@ void main() {
     }
 
     expect(offenders, isEmpty,
-        reason: 'lib/core must stay pure Dart. Offending files: ' +
-            offenders.join(', '));
+        reason:
+            'lib/core must stay pure Dart. Offending files: ${offenders.join(', ')}');
   });
 }
