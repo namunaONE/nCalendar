@@ -12,8 +12,11 @@
 // Baisakh 2083 default once today leaves the shipped range (2027+).
 //
 // The date converter is a dart2js DEFERRED library in the web build
-// (C1 bundle diet); loadLibrary() resolves on the test VM, and the
-// converter tab test pumps until the deferred future completes.
+// (C1 bundle diet). In tests the loading unit is shared, so the
+// converter test completes it deterministically in a real-async
+// window (runAsync) BEFORE booting the app; the app's own
+// loadLibrary() then resolves in a microtask instead of gating on
+// real IO inside the fake-async test zone.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,6 +25,8 @@ import 'package:n_calendar/main.dart';
 import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 import 'package:n_calendar/services/today_service.dart';
+import 'package:n_calendar/widgets/date_converter.dart'
+    deferred as converter_lib;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +91,11 @@ void main() {
 
   testWidgets('Converter tab: deferred library loads and renders',
       (WidgetTester tester) async {
+    // Complete the deferred loading unit in real async BEFORE the
+    // app boots; the app's loadLibrary() then resolves in a
+    // microtask. (Same loading unit — shared across imports.)
+    await tester.runAsync(() => converter_lib.loadLibrary());
+
     await tester.pumpWidget(const NCalendarApp());
 
     // Wait for boot: the bottom NavigationBar only renders once a
@@ -100,22 +110,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(booted, isTrue, reason: 'Bottom navigation did not render');
 
-    // Switching to the Converter tab kicks off loadLibrary().
+    // Switching to the Converter tab kicks off the app's
+    // loadLibrary(); the unit is already loaded, so this resolves
+    // in a microtask at the next pump.
     await tester.tap(find.text('Converter'));
     await tester.pump();
 
-    // The deferred-library future resolves outside the fake async zone.
     var visible = false;
     for (var attempt = 0; attempt < 20 && !visible; attempt++) {
-      await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 50)));
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
       visible = find.text('AD → BS').evaluate().isNotEmpty;
     }
     await tester.pumpAndSettle();
 
+    if (!visible) {
+      // Compact diagnostics — stdout lands in the CI PR comment.
+      final errorShown = find
+          .textContaining('Converter failed to load')
+          .evaluate()
+          .isNotEmpty;
+      final converterInTree =
+          find.text('BS → AD', skipOffstage: false).evaluate().isNotEmpty;
+      debugPrint('converter-tab debug: errorShown=$errorShown, '
+          'converterWidgetsInTree=$converterInTree');
+    }
+
     expect(visible, isTrue,
-        reason: 'Deferred converter library did not load and render');
+        reason: 'Deferred converter library did not load and render '
+            '(see converter-tab debug line in the log above)');
     expect(find.text('BS → AD'), findsOneWidget);
     expect(find.text('Pick an AD date'), findsOneWidget);
   });
