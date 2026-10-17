@@ -4,6 +4,26 @@ All notable changes to nCalendar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-10-17
+
+### Added
+- CSS-only loading splash in web/index.html: paints before the JS
+  bundle downloads (real first content), brand navy, respects
+  prefers-reduced-motion, removed on Flutter's flutter-first-frame
+  event.
+- Preload hints for flutter_bootstrap.js / flutter.js / main.dart.js
+  (relative paths, resolved under the base href) so the browser
+  starts fetching the boot chain before the async script tag.
+
+### Fixed
+- web/index.html loaded flutter_bootstrap.js twice (head + body);
+  the duplicate head tag is removed.
+
+### Note
+- No data or logic changes. The splash is a perceived-performance
+  improvement; the JS bundle itself is unchanged this release
+  (numbers live in the CI bundle size reports).
+
 ## [1.2.1] - 2026-10-17
 
 ### Changed
