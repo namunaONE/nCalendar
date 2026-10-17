@@ -253,8 +253,10 @@ class _HomePageState extends State<HomePage> {
                 ),
                 // Converter tab: rendered only from the deferred library,
                 // with a loading state and an honest error + retry path.
+                // NOTE: const is not allowed through a deferred import
+                // (constant evaluation precedes loadLibrary()).
                 _converterLoaded
-                    ? const converter.DateConverter()
+                    ? converter.DateConverter()
                     : Center(
                         child: _converterError
                             ? const Padding(

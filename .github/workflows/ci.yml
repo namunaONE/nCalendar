@@ -27,7 +27,24 @@ jobs:
         run: python scripts/gen_bs_data.py --check
 
       - name: Analyze
-        run: flutter analyze
+        id: analyze
+        run: flutter analyze 2>&1 | tee analyze_output.txt; exit ${PIPESTATUS[0]}
+        continue-on-error: true
+
+      - name: Publish analyze output to the PR on failure
+        if: steps.analyze.outcome == 'failure' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s\n' '### Analyze output' > comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          tail -n 60 analyze_output.txt >> comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+
+      - name: Fail the job if analyze failed
+        if: steps.analyze.outcome == 'failure'
+        run: exit 1
 
       - name: Test
         id: test
@@ -50,7 +67,24 @@ jobs:
         run: exit 1
 
       - name: Build web (bundle diet smoke: icon tree-shake + deferred split)
-        run: flutter build web --release --base-href "/nCalendar/" --tree-shake-icons
+        id: buildweb
+        run: flutter build web --release --base-href "/nCalendar/" --tree-shake-icons 2>&1 | tee build_output.txt; exit ${PIPESTATUS[0]}
+        continue-on-error: true
+
+      - name: Publish build output to the PR on failure
+        if: steps.buildweb.outcome == 'failure' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s\n' '### Web build output (tail of 60 lines)' > comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          tail -n 60 build_output.txt >> comment_body.md
+          printf '%s\n' '```' >> comment_body.md
+          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+
+      - name: Fail the job if the web build failed
+        if: steps.buildweb.outcome == 'failure'
+        run: exit 1
 
       - name: Bundle size report
         run: |
