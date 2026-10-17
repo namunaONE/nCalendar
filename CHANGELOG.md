@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflows publish a bundle size report (build/web breakdown) to the
   job summary for before/after comparison.
 
+### Fixed
+- The converter tab placeholder mounted an indeterminate spinner from
+  boot; IndexedStack builds all children, so it animated offstage
+  behind the Calendar tab forever (CPU/battery drain on the deployed
+  app — caught by CI pumpAndSettle timeouts). The idle state now
+  renders nothing; the spinner shows only while the deferred library
+  is loading.
+
 ### Note
 - No data or conversion-logic changes in this release: calendar.csv
   remains the generated source of truth, out-of-range dates still fail
