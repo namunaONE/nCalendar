@@ -13,16 +13,22 @@ analyzer:
   exclude:
     - build/**
     - web/**
+    # packages/** is a standalone Dart package analyzed by its own
+    # analysis_options.yaml and its own CI step (dart pub get + dart analyze
+    # + dart test inside packages/nbs). The root analyzer must NOT walk it:
+    # its dev_dependencies are not resolved by the root flutter pub get,
+    # which produced 66 bogus undefined_function errors (PR #6 CI run).
+    - packages/**
 
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
-  # included above or to enable additional rules. A list of all available lints
-  # and their documentation is published at https://dart.dev/lints.
+  # included above but to enable additional lints. A list of all lints and
+  # their documentation is published at https://dart.dev/lints.
   #
   # Instead of disabling a lint rule for the entire project in the
-  # section below, it can also be suppressed for a single line of code
-  # or a specific dart file by using the `// ignore: name_of_lint` and
+  # section below, it can be suppressed for a single line of code
+  # or for a single dart file using the `// ignore: name_of_lint` and
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
