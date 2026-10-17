@@ -4,6 +4,23 @@ All notable changes to nCalendar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-10-17
+
+### Changed — C2b: the nbs package skeleton (Linear HYA-376)
+
+- The pure-Dart core (models + engine) now lives in **packages/nbs** —
+  a standalone pure-Dart package (name `nbs`, version 0.1.0, Apache-2.0)
+  consumed by the app as a path dependency. Import-path-only change:
+  zero behavior, data, or UI edits.
+- lib/core is deleted; all app imports now resolve to package:nbs.
+- New in nbs: NbsCalendar facade (null-out-of-range honesty contract)
+  and NbsData.parse pure-Dart JSON loader; the app's BsDataService is
+  now a thin Flutter shim (rootBundle -> NbsData.parse -> engine).
+- CI runs the nbs package battery: dart analyze + dart test +
+  dart pub publish --dry-run on every PR. Publishing to pub.dev is
+  gated on maintainer approval of the name and public claims.
+- The lib/core purity guard now walks packages/nbs/lib.
+
 ## [1.3.0] - 2026-10-17
 
 ### Structural refactor — pure-Dart `lib/core` layer (C2a)

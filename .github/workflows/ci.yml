@@ -106,6 +106,38 @@ jobs:
         if: steps.buildweb.outcome == 'failure'
         run: exit 1
 
+      - name: "nbs package: analyze and test"
+        id: nbstest
+        run: |
+          cd packages/nbs
+          dart pub get
+          dart analyze
+          dart test
+        continue-on-error: true
+
+      - name: "nbs package: publish dry-run"
+        id: nbspublish
+        run: |
+          cd packages/nbs
+          dart pub publish --dry-run
+        continue-on-error: true
+
+      - name: Publish nbs failure note to the PR
+        if: steps.nbstest.outcome == 'failure' || steps.nbspublish.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### nbs package step failed (analyze / test / publish dry-run)' > comment_body.md
+            printf '%s\n' 'Reproduce locally: cd packages/nbs && dart pub get && dart analyze && dart test && dart pub publish --dry-run' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
+
+      - name: Fail the job if the nbs package steps failed
+        if: steps.nbstest.outcome == 'failure' || steps.nbspublish.outcome == 'failure'
+        run: exit 1
+
       - name: Bundle size report
         run: |
           {

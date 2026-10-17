@@ -1,5 +1,5 @@
-import 'package:n_calendar/core/models/bs_day.dart';
-import 'package:n_calendar/core/models/bs_month.dart';
+import 'package:nbs/bs_day.dart';
+import 'package:nbs/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 
 /// Provides today's Bikram Sambat date by looking up today's AD date
