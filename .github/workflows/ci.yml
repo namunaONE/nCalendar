@@ -26,8 +26,34 @@ jobs:
       - name: Verify generated data is in sync
         run: python scripts/gen_bs_data.py --check
 
+      # NOTE: failure diagnostics below intentionally do NOT gate on
+      # github.event_name — runs may arrive as push or pull_request
+      # events; the PR number is resolved from the branch name so the
+      # output always lands on the PR. (Lesson from C1: gating comments
+      # on event_name made two red runs invisible.)
+
       - name: Analyze
-        run: flutter analyze
+        id: analyze
+        run: flutter analyze 2>&1 | tee analyze_output.txt; exit ${PIPESTATUS[0]}
+        continue-on-error: true
+
+      - name: Publish analyze output to the PR on failure
+        if: steps.analyze.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### Analyze output' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            tail -n 60 analyze_output.txt >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
+
+      - name: Fail the job if analyze failed
+        if: steps.analyze.outcome == 'failure'
+        run: exit 1
 
       - name: Test
         id: test
@@ -35,16 +61,59 @@ jobs:
         continue-on-error: true
 
       - name: Publish test output to the PR on failure
-        if: steps.test.outcome == 'failure' && github.event_name == 'pull_request'
+        if: steps.test.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          tail -n 150 test_output.txt >> comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            tail -n 150 test_output.txt >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
 
       - name: Fail the job if tests failed
         if: steps.test.outcome == 'failure'
         run: exit 1
+
+      # NOTE: the step name below is quoted because it contains ": "
+      # — an unquoted colon-space inside a plain YAML scalar made every
+      # CI run on this branch fail at workflow startup with zero jobs
+      # (runs #10/#11/#12). Quote step names that contain colons.
+
+      - name: "Build web (bundle diet smoke: icon tree-shake + deferred split)"
+        id: buildweb
+        run: flutter build web --release --base-href "/nCalendar/" --tree-shake-icons 2>&1 | tee build_output.txt; exit ${PIPESTATUS[0]}
+        continue-on-error: true
+
+      - name: Publish build output to the PR on failure
+        if: steps.buildweb.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### Web build output (tail of 60 lines)' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            tail -n 60 build_output.txt >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
+
+      - name: Fail the job if the web build failed
+        if: steps.buildweb.outcome == 'failure'
+        run: exit 1
+
+      - name: Bundle size report
+        run: |
+          {
+            printf '%s\n' '## Bundle size report (PR build)'
+            printf '%s\n' ''
+            printf '%s\n' '```'
+            du -ah build/web | sort -rh | head -25
+            printf '%s\n' ''
+            du -sh build/web
+            printf '%s\n' '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,4 +1,4 @@
-// Widget smoke test for nCalendar.
+// Widget smoke tests for nCalendar.
 //
 // The data service is warmed in setUpAll (outside the fake async zone)
 // so the boot path is deterministic; asset correctness is covered by
@@ -10,6 +10,13 @@
 // i.e. today's. All assertions are computed from the real data
 // service so they stay valid on any CI date, and fall back to the
 // Baisakh 2083 default once today leaves the shipped range (2027+).
+//
+// The date converter is a dart2js DEFERRED library in the web build
+// (C1 bundle diet). In tests the loading unit is shared, so the
+// converter test completes it deterministically in a real-async
+// window (runAsync) BEFORE booting the app; the app's own
+// loadLibrary() then resolves in a microtask instead of gating on
+// real IO inside the fake-async test zone.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +25,12 @@ import 'package:n_calendar/main.dart';
 import 'package:n_calendar/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 import 'package:n_calendar/services/today_service.dart';
+// The deferred prefix is used below via converter_lib.loadLibrary();
+// the analyzer does not count loadLibrary() as member usage and
+// flags this as unused — an ignore is the honest fix here.
+// ignore: unused_import
+import 'package:n_calendar/widgets/date_converter.dart'
+    deferred as converter_lib;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +78,8 @@ void main() {
         reason: 'The app must open on today (today banner visible)',
       );
       expect(
-        find.text('${BsMonth.monthName(today.bsMonth)} ${today.bsDay}, ${today.bsYear}'),
+        find.text(
+            '${BsMonth.monthName(today.bsMonth)} ${today.bsDay}, ${today.bsYear}'),
         findsOneWidget,
         reason: 'The app bar must show today as a jump-back chip',
       );
@@ -77,5 +91,68 @@ void main() {
 
     // No error state.
     expect(find.text('Failed to load calendar data'), findsNothing);
+  });
+
+  testWidgets('Converter tab: deferred library loads and renders',
+      (WidgetTester tester) async {
+    // Complete the deferred loading unit in real async BEFORE the
+    // app boots; the app's loadLibrary() then resolves in a
+    // microtask. (Same loading unit — shared across imports.)
+    await tester.runAsync(() => converter_lib.loadLibrary());
+
+    await tester.pumpWidget(const NCalendarApp());
+
+    // Wait for boot: the bottom NavigationBar only renders once a
+    // month is available.
+    var booted = false;
+    for (var attempt = 0; attempt < 20 && !booted; attempt++) {
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.pump();
+      booted = find.text('Converter').evaluate().isNotEmpty;
+    }
+    await tester.pumpAndSettle();
+    expect(booted, isTrue, reason: 'Bottom navigation did not render');
+
+    // Switching to the Converter tab kicks off the app's
+    // loadLibrary(); the unit is already loaded, so this resolves
+    // in a microtask at the next pump.
+    await tester.tap(find.text('Converter'));
+    await tester.pump();
+
+    var visible = false;
+    var errorShown = false;
+    for (var attempt = 0; attempt < 20 && !visible && !errorShown;
+        attempt++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      // Real-async window: on the test VM the deferred loader only
+      // completes inside runAsync windows (runs #14-#19 evidence:
+      // with windows the spinner stops, without them it spins
+      // forever).
+      await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)));
+      visible = find.text('AD → BS').evaluate().isNotEmpty;
+      errorShown = find
+          .textContaining('Converter failed to load')
+          .evaluate()
+          .isNotEmpty;
+    }
+    debugPrint(
+        'converter-tab debug: visible=$visible, errorShown=$errorShown');
+
+    if (visible) {
+      // Regression guard: the loaded converter must settle — any
+      // infinite animation (e.g. a stray spinner) fails here.
+      await tester.pumpAndSettle();
+    }
+
+    expect(visible, isTrue,
+        reason: errorShown
+            ? 'Deferred converter load FAILED on the test VM: the '
+              'honest error card is shown (loadLibrary threw)'
+            : 'Converter tab stuck on the loading spinner — the '
+              'deferred load never resolved');
+    expect(find.text('BS → AD'), findsOneWidget);
+    expect(find.text('Pick an AD date'), findsOneWidget);
   });
 }
