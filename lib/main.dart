@@ -255,20 +255,30 @@ class _HomePageState extends State<HomePage> {
                 // with a loading state and an honest error + retry path.
                 // NOTE: const is not allowed through a deferred import
                 // (constant evaluation precedes loadLibrary()).
+                // Idle state renders NOTHING. A permanently mounted
+                // (offstage) indeterminate spinner keeps scheduling
+                // frames forever: CI pumpAndSettle caught it, and on
+                // the deployed app it would burn CPU/battery behind
+                // the active tab. Show the spinner only while the
+                // deferred library is actually loading.
                 _converterLoaded
                     ? converter.DateConverter()
-                    : Center(
-                        child: _converterError
-                            ? const Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Text(
-                                  'Converter failed to load — switch to the '
-                                  'Calendar tab and back to retry.',
-                                  textAlign: TextAlign.center,
+                    : _converterLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          )
+                        : _converterError
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(24),
+                                  child: Text(
+                                    'Converter failed to load — switch to the '
+                                    'Calendar tab and back to retry.',
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               )
-                            : const CircularProgressIndicator(),
-                      ),
+                            : const SizedBox.shrink(),
               ],
             ),
       bottomNavigationBar: _currentMonth != null
