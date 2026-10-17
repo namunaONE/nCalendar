@@ -42,7 +42,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           if [ -n "${PR_NUMBER}" ]; then
             printf '%s\n' '### Analyze output' > comment_body.md
             printf '%s\n' '```' >> comment_body.md
@@ -65,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           if [ -n "${PR_NUMBER}" ]; then
             printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
             printf '%s\n' '```' >> comment_body.md
@@ -93,7 +93,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           if [ -n "${PR_NUMBER}" ]; then
             printf '%s\n' '### Web build output (tail of 60 lines)' > comment_body.md
             printf '%s\n' '```' >> comment_body.md
