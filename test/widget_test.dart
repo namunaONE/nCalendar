@@ -22,7 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:n_calendar/main.dart';
-import 'package:n_calendar/models/bs_month.dart';
+import 'package:n_calendar/core/models/bs_month.dart';
 import 'package:n_calendar/services/bs_data_service.dart';
 import 'package:n_calendar/services/today_service.dart';
 // The deferred prefix is used below via converter_lib.loadLibrary();
