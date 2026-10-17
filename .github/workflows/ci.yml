@@ -26,21 +26,30 @@ jobs:
       - name: Verify generated data is in sync
         run: python scripts/gen_bs_data.py --check
 
+      # NOTE: failure diagnostics below intentionally do NOT gate on
+      # github.event_name — runs may arrive as push or pull_request
+      # events; the PR number is resolved from the branch name so the
+      # output always lands on the PR. (Lesson from C1: gating comments
+      # on event_name made two red runs invisible.)
+
       - name: Analyze
         id: analyze
         run: flutter analyze 2>&1 | tee analyze_output.txt; exit ${PIPESTATUS[0]}
         continue-on-error: true
 
       - name: Publish analyze output to the PR on failure
-        if: steps.analyze.outcome == 'failure' && github.event_name == 'pull_request'
+        if: steps.analyze.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          printf '%s\n' '### Analyze output' > comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          tail -n 60 analyze_output.txt >> comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### Analyze output' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            tail -n 60 analyze_output.txt >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
 
       - name: Fail the job if analyze failed
         if: steps.analyze.outcome == 'failure'
@@ -52,15 +61,18 @@ jobs:
         continue-on-error: true
 
       - name: Publish test output to the PR on failure
-        if: steps.test.outcome == 'failure' && github.event_name == 'pull_request'
+        if: steps.test.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          tail -n 150 test_output.txt >> comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### Test output (tail of 150 lines)' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            tail -n 150 test_output.txt >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
 
       - name: Fail the job if tests failed
         if: steps.test.outcome == 'failure'
@@ -72,15 +84,18 @@ jobs:
         continue-on-error: true
 
       - name: Publish build output to the PR on failure
-        if: steps.buildweb.outcome == 'failure' && github.event_name == 'pull_request'
+        if: steps.buildweb.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          printf '%s\n' '### Web build output (tail of 60 lines)' > comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          tail -n 60 build_output.txt >> comment_body.md
-          printf '%s\n' '```' >> comment_body.md
-          gh pr comment "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --body-file comment_body.md
+          PR_NUMBER=$(gh pr list --repo "${{ github.repository }}" --head "${GITHUB_REF_NAME}" --json number --jq '.[0].number')
+          if [ -n "${PR_NUMBER}" ]; then
+            printf '%s\n' '### Web build output (tail of 60 lines)' > comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            tail -n 60 build_output.txt >> comment_body.md
+            printf '%s\n' '```' >> comment_body.md
+            gh pr comment "${PR_NUMBER}" --repo "${{ github.repository }}" --body-file comment_body.md
+          fi
 
       - name: Fail the job if the web build failed
         if: steps.buildweb.outcome == 'failure'
